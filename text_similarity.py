@@ -1,4 +1,5 @@
 from difflib import SequenceMatcher
+import numpy as np
 
 #longest common substring
 def longestCommonsubstring(str1, str2):
@@ -113,6 +114,26 @@ def lexical_density(string):
     total = len(tokenize(string, True))
     return len(freq)/total
 
+def ttr(text):
+    """Type to text ratio using standard word_tokenize method"""
+    tokens = word_tokenize(text)
+    return len(set(tokens))/len(tokens)
+
+def wordPairDist(word1, word2, words):
+    """word pair distance counts the number
+    of words which lie between those of a given pair.
+    """
+    if word1 in words and word2 in words:
+        return abs(words.index(word1) - words.index(word2))
+    return -1
+
+def wordPairOrder(word1, word2, text1, text2):
+    """Word pair order tells whether two words occur in the
+    same order in both texts (with any number of words
+    in between)
+    """
+    pass
+            
 
 def jaccard_similarity(text1, text2):
     """Calculate Jaccard Similarity between two texts.
@@ -133,3 +154,5 @@ def jaccard_similarity(text1, text2):
     set2 = set(tokenize(text2, True))
 
     return len(set1 & set2)/len(set1 | set2)
+
+
