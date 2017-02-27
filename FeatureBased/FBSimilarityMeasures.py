@@ -5,7 +5,7 @@ import numpy as np
 def longestCommonsubstring(str1, str2):
     match = SequenceMatcher(None, str1, str2).find_longest_match(0, len(str1), 0, len(str2))
     return str1[match.a: match.a + match.size]
-    
+
 #longest common subsequence => contiguity requirement is dropped.	
 def longestCommonSubseq(str1, str2):
     
@@ -18,9 +18,10 @@ def longestCommonSubseq(str1, str2):
     else:
         return max(longestCommonSubseq(str1, xs2), longestCommonSubseq(xs1, str2), key = len)
 
-# ToDo improve longestCommonSubseq using memoization
-
 # ToDo char/word n-grams
+def find_ngrams(input_list, n):
+  return zip(*[input_list[i:] for i in range(n)])
+
 
 def tokenize(string, lowercase=False):
     """Extract words from a string containing English words.
