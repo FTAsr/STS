@@ -9,6 +9,8 @@ instructions on how you can compile fastsent on your system
 Expects a folder ./gensim with the compiled fastsent model 
 Run this from the parent directory of gensim(the one in this folder) 
 
+Expects a folder ./models with serialized(npy) model files
+
 If using anaconda, switch to python2 environment
 """
 import sys
