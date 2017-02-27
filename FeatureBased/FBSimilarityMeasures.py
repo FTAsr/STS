@@ -4,8 +4,8 @@ import numpy as np
 #longest common substring
 def longestCommonsubstring(str1, str2):
     match = SequenceMatcher(None, str1, str2).find_longest_match(0, len(str1), 0, len(str2))
-    return 2 * len(str1[match.a: match.a + match.size])/(len(str1.trim()) + len(str2.trim()))
-
+    return str1[match.a: match.a + match.size]
+    
 #longest common subsequence => contiguity requirement is dropped.	
 def longestCommonSubseq(str1, str2):
     
