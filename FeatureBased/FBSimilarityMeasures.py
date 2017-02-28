@@ -7,19 +7,29 @@ def longestCommonsubstring(str1, str2):
     return str1[match.a: match.a + match.size]
 
 #longest common subsequence => contiguity requirement is dropped.	
-def longestCommonSubseq(str1, str2):
-    
-    if not str1 or not str2:
-        return ''
-    x1, x2 = str1[0], str2[0]
-    xs1, xs2 = str1[1:], str2[1:]
-    if x1 == x2:
-        return x1 + longestCommonSubseq(xs1, xs2)
-    else:
-        return max(longestCommonSubseq(str1, xs2), longestCommonSubseq(xs1, str2), key = len)
+def longestCommonSubseq(str1 , str2):
+    # find the length of the strings
+    m = len(str1)
+    n = len(str2)
+ 
+    # declaring the array for storing the dp values
+    lcs = [[None]*(n+1) for i in range(m+1)]
+ 
+    # store lcs[m+1][n+1] using bottom up DP approach
+
+    for i in range(m+1):
+        for j in range(n+1):
+            if i == 0 or j == 0 :
+                lcs[i][j] = 0
+            elif str1[i-1] == str2[j-1]:
+                lcs[i][j] = lcs[i-1][j-1]+1
+            else:
+                lcs[i][j] = max(lcs[i-1][j] , lcs[i][j-1])
+ 
+    return lcs[m][n]
 
 # ToDo char/word n-grams
-def find_ngrams(input_list, n):
+def ngrams(input_list, n):
   return zip(*[input_list[i:] for i in range(n)])
 
 
