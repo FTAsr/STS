@@ -14,7 +14,8 @@ Expects a folder ./models with serialized(npy) model files
 If using anaconda, switch to python2 environment
 """
 import sys
-sys.path.append('./gensim') #Essential step
+#sys.path.append('./gensim') #Essential step
+sys.path = ['./gensim'] + sys.path
  
 import gensim 
 from gensim.models.fastsent import FastSent
@@ -24,8 +25,7 @@ from string import punctuation
  
 modelpath= './models/'
     
-
- 
+    
 def evaluate(model):
     (trainA,trainB),(testA,testB), (trainS,testS)=load_data()
     finalA= trainA+testA
@@ -47,12 +47,12 @@ def evaluate(model):
             goldstandardscore.append(s)
         except KeyError as e:
             print("Not in vocabulary:%s"%e)
-            print("Original sentences: %s, %s"%(process(a),process(b)))
+            print("Original sentences: %s, %s"%(a,b))
             print("Processed sentences: %s, %s"%(process(a),process(b)))
             continue
         except:
             print("\n**UNKNOWN ERROR**")
-            print("Original sentences: %s, %s"%(process(a),process(b)))
+            print("Original sentences: %s, %s"%(a,b))
             print("Processed sentences: %s, %s"%(process(a),process(b)))
             continue
 
