@@ -27,17 +27,18 @@ class bow(object):
     vector representation of a sentence is obtained by adding up 
     the vectors of its constituting words.
     """
-    w2vModel = 0
+    w2vModel = None
     
     def __init__(self, modelFile):
         print("bow init: loading word2vec model")
-        self.w2vModel = Word2Vec.load_word2vec_format("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_300_6/vectorsW.bin", binary=True) 
+        self.w2vModel = Word2Vec.load_word2vec_format(modelFile, binary=True) 
         return
-        
     def encode(self, sentences, verbose=False, use_eos=True):
-        sentenceVecs = sentences
-        sentenceVec = sentences[0]
+        sentenceVecs = list()
+        sentenceVec = None
         for index, sentence in enumerate(sentences):
+            print(sentence)
+            #print(type(sentence))
             sentence = sentence.lower().split()
             wordCount = 0
             for word in sentence:
@@ -50,8 +51,7 @@ class bow(object):
             if(wordCount == 0):
                 raise ValueError("Cannot encode sentence " + str(index) + " : all words unknown to model!")
             else:
-                sentenceVec = normalize(sentenceVec[:,np.newaxis], axis=0).ravel()
-                sentenceVecs[index] = sentenceVec
+                sentenceVecs.append(normalize(sentenceVec[:,np.newaxis], axis=0).ravel())
         return np.array(sentenceVecs)
                     
     
