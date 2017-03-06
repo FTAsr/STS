@@ -1,3 +1,7 @@
+#!/Users/fa/anaconda/bin/python
+import sys
+sys.path = ['../utils'] + sys.path
+import utils
 
 import numpy as np
 from gensim.models import Word2Vec
@@ -9,7 +13,18 @@ from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 from nltk.stem.porter import *
 
-import utils
+
+
+
+import cPickle
+import pandas as pd
+from fuzzywuzzy import fuzz
+from tqdm import tqdm
+from scipy.stats import skew, kurtosis
+from scipy.spatial.distance import cosine, cityblock, jaccard, canberra, euclidean, minkowski, braycurtis
+from nltk import word_tokenize
+from difflib import SequenceMatcher
+
 
 
 
@@ -83,6 +98,10 @@ class quickScore(object):
 
 
     def sentence_similarity(self, sentenceA, sentenceB, stemming = 0):
+        exactMathc , corMatch, synMatch = self.features(sentenceA, sentenceB, stemming )
+        return (exactMatch + corMatch + synMatch) * 1.0 / len(keywords)
+        
+    def pairFeatures(self, sentenceA, sentenceB, stemming = 0):
         ## Note that in quickScore, there is a difference between sentenceA and senteceB
         ## sentenceA is considered as the target (correct response)
         ## sentenceB is considered as the student response to be evaluated
@@ -128,7 +147,70 @@ class quickScore(object):
         print("\nExact matches: " + str(exactMatch)+
             "\nCorrected mathces: " + str(corMatch)+
             "\nSynonymy matches: " + str(synMatch))
-        return (exactMatch + corMatch + synMatch) * 1.0 / len(keywords)
+        return exactMatch , corMatch , synMatch
     
    
+class featureBased(object):
+    """
+    The distributional bag of word model of sentence meaning:
+    vector representation of a sentence is obtained by adding up 
+    the vectors of its constituting words.
+    """
+
+    stoplist = None 
+    qs = None
+    
+    def __init__(self):
+        print("featureBased init: loading word2vec model")
+        self.stoplist = stopwords.words('english')
+        self.qs = quickScore()
+        return
+    def pairFeatures(self, sentenceA, sentenceB):
+        features = list()
+        '''
+        ## len features all, chars, word
+        features.append( len(sentenceA) )
+        features.append( len(sentenceB) )
+        features.append( len(''.join(set(sentenceA.replace(' ', '')))) ) 
+        features.append( len(''.join(set(sentenceB.replace(' ', '')))) ) 
+        features.append( len(sentenceA.split()) )
+        features.append( len(sentenceB.split()) ) 
+        
+        ## substring and n-gram features 
+        for length in (3,5,7,10):
+            features.append(  len(set(zip(*[sentenceA[i:] for i in range(length)])).intersection(set(zip(*[sentenceB[i:] for i in range(length)]))))  )
+        features.append( SequenceMatcher(None, sentenceA, sentenceB).find_longest_match(0, len(sentenceA), 0, len(sentenceB))[2]  )
+        
+        ## token features
+        features.append( len(set(sentenceA.lower().split()).intersection(set(sentenceB.lower().split()))) ) 
+        features.append( fuzz.QRatio(sentenceA, sentenceB) ) 
+        features.append( fuzz.WRatio(sentenceA, sentenceB) ) 
+        features.append( fuzz.partial_ratio(sentenceA, sentenceB) ) 
+        features.append( fuzz.partial_token_set_ratio(sentenceA, sentenceB) ) 
+        features.append( fuzz.partial_token_sort_ratio(sentenceA, sentenceB) )
+        features.append( fuzz.token_set_ratio(sentenceA, sentenceB) )
+        features.append( fuzz.token_set_ratio(sentenceA, sentenceB) ) 
+        '''
+        ## word semantic features
+        
+        for f in self.qs.pairFeatures(sentenceA, sentenceB, stemming = 0):
+            features.append(f)
+        for f in self.qs.pairFeatures(sentenceA, sentenceB, stemming = 1):
+            features.append(f)
+        
+        
+        
+        return features
+        
+        
+'''''       
+if __name__ == '__main__':
+    f = featureBased()
+    print f.pairFeatures("Greatings my dear lady!", "Hi miss, where is Lady Gaga?")
+    print f.pairFeatures("This is a good new book!", "full of great stories")
+    print f.pairFeatures("Can't say anything", "But you said something")
+    print f.pairFeatures("mantel", "layer")
+''' 
+    
+    
     
