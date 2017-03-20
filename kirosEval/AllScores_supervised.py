@@ -32,22 +32,24 @@ from keras.layers.core import Dense, Activation
 from keras.optimizers import Adam
 
 import itertools
+import pandas as pd
 
 
 
         
 
-def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, pairFeatures = False): 
+def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, featureVector = False): 
     ## callable is true if we can get the encoding of a sentence by simply calling model[sentence]
     ## callable is false if we can only get the encoding of a sentence by model.encode()
     ## pairFeatures is true if we can call the model.pairFeatures(sentA, sentB) to obtain a vector of different similarity measures 
     ## pairFeatures is false if we first need to calculate each sentence's vector separetly and then make our own vectors through Kiros's method (applicable to distributional models)
     
     #lower case and removes punctuation
-    def process(s): return [i.lower().translate(None, punctuation) for i in s]
+    def process(s): return [i.lower().translate(None, punctuation).strip() for i in s]
     
-    errorFlag = None
+    errorFlag = "* error flag *"
     def encode(s):
+        print "using method encode!"
         result = list()
         for i, sentence in enumerate(s):
             try:
@@ -61,12 +63,12 @@ def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, pairF
         return result
     
     def pairFeatures(a,b):
+        print "using method pairFeatures!"
         result = list()
         for sentenceA,sentenceB in itertools.izip(a,b):
             try:
-                print "Sentence A: " + sentenceA + "\t Sentence B: " +  sentenceB
+                #print "Sentence A: " + sentenceA + "\t Sentence B: " +  sentenceB
                 x = model.pairFeatures(sentenceA,sentenceB)
-                print("resut calculated")
                 result.append(x)
             except:
                 print("ERROR: " + sentenceA + " & " +  sentenceB)
@@ -78,7 +80,7 @@ def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, pairF
     train, dev, test, scores = load_data(datafile)
     train[0], train[1], scores[0] = shuffle(train[0], train[1], scores[0], random_state=seed)
     
-    if(pairFeatures):
+    if featureVector == True:
         print 'Computing feature vectors directly through model.pairFeatures() ...'
         
         trainF = np.asarray( pairFeatures(process(train[0]), process(train[1])) )
@@ -136,15 +138,13 @@ def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, pairF
 
     if evaltest:
         print 'Evaluating...'
-        
-        if(pairFeatures):
+        index = None
+        if featureVector == True:
             print 'Computing feature vectors directly through model.pairFeatures() ...'
             testF = np.asarray( pairFeatures(process(test[0]), process(test[1])) )
-            
             index = [i for i, j in enumerate(testF) if j ==  errorFlag]
             testF = np.asarray([x for i, x in enumerate(testF) if i not in index])
             testS = np.asarray([x for i, x in enumerate(scores[2]) if i not in index])
-            
         else:
             testA = encode( process(test[0] ))
             testB = encode( process(test[1] ))
@@ -155,7 +155,7 @@ def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, pairF
             testA = np.asarray([x for i, x in enumerate(testA) if i not in index])
             testB = np.asarray([x for i, x in enumerate(testB) if i not in index])
             testS = np.asarray([x for i, x in enumerate(scores[2]) if i not in index])
-        
+            
             print 'Computing feature combinations...'
             testF = np.c_[np.abs(testA - testB), testA * testB]
 
@@ -172,8 +172,27 @@ def evaluate(model, datafile, seed=1234, evaltest=False, callable = False, pairF
         print 'Test Spearman: ' + str(sr)
         print 'Test MSE: ' + str(se)
         print("********************************")
+        #print(np.c_[testA, testB, testS, yhat, np.abs(testS - yhat)])
+        sentenceA = np.asarray([x for i, x in enumerate(process(test[0])) if i not in index])
+        sentenceB = np.asarray([x for i, x in enumerate(process(test[1])) if i not in index])
+        a =  [ (sentenceA[i], sentenceB[i], testS[i], yhat[i], np.abs(testS[i] - yhat[i]) ) for i,s in enumerate(sentenceA) ]
+        b = pd.DataFrame(a, columns = ['target','response','score','prediction','error'])
 
-        return yhat
+        #for i , s in enumerate(sentenceA):
+        #    print(sentenceA[i], sentenceB[i], testS[i], yhat[i], np.abs(testS[i] - yhat[i]))
+        print(b.sort(['error', 'score']))
+            
+        #a = np.c_[sentenceA, sentenceB, testS, yhat, np.abs(testS - yhat)]
+        ''''
+        try:
+            a = np.array([sentenceA, sentenceB, testS, yhat, np.abs(testS - yhat)], dtype=[('target', None), ('response', None), ('score', float), ('prediction', float), ('error', float)])
+            a = a.sort(order='error')
+        except ValueError,e:
+            print "error",e
+        '''
+        
+
+        return b
 
 
 def prepare_model(ninputs=9600, nclass=5):
@@ -181,7 +200,7 @@ def prepare_model(ninputs=9600, nclass=5):
     Set up and compile the model architecture (Logistic regression)
     """
     lrmodel = Sequential()
-    lrmodel.add(Dense(nclass, input_dim=6)) #set this to twice the size of sentence vector or equal to the final feature vector size
+    lrmodel.add(Dense(nclass, input_dim=28)) #set this to twice the size of sentence vector or equal to the final feature vector size
     lrmodel.add(Activation('softmax'))
     lrmodel.compile(loss='categorical_crossentropy', optimizer='adam')
     return lrmodel
@@ -231,7 +250,7 @@ def encode_labels(labels, nclass=5):
                 Y[j,i] = np.floor(y) - y + 1
     return Y
 
-
+'''
 def load_data(loc='../data/SICK/'):
     """
     Load the SICK semantic-relatedness dataset
@@ -267,18 +286,6 @@ def load_data(loc='../data/SICK/'):
 
 '''
     
-def encode_labels(labels, nclass=5): 
-    """
-    Label encoding from Tree LSTM paper (Tai, Socher, Manning)
-    """
-    Y = np.zeros((len(labels), nclass)).astype('float32')
-    for j, y in enumerate(labels):
-        for i in range(nclass):
-            if i+1 == np.floor(y) + 1:
-                Y[j,i] = y - np.floor(y)
-            if i+1 == np.floor(y):
-                Y[j,i] = np.floor(y) - y + 1
-    return Y
  
 def load_data(dataFile):
     """
@@ -287,28 +294,34 @@ def load_data(dataFile):
     
     allA, allB, allS = [],[],[]
 
-    #with open(loc + 'CollegeOldData_HighAgreementPartialScoring.txt', 'rb') as f:
     with open(dataFile, 'rb') as f:
         for line in f:
             text = line.strip().split('\t')
             allA.append(text[1])
             allB.append(text[2])
             allS.append(text[3])
-            print("Reading data" + str(text))
+            #print("Reading data" + str(text))
     allA = allA[1:]
     allB = allB[1:]
     allS = [float(s) for s in allS[1:]]
-    allS = [(x * 4 + 1) for x in allS] ## scale values to [1,5] like in SICK data
+    allS = [(x * 4 + 1) for x in allS] ## scale [0,1] values to [1,5] like in SICK data
     
     ## remove useless datapoints
-    index = [i for i, j in enumerate(allB) if (j == "empty" or  j == "I don't know")]
+    index = [i for i, j in enumerate(allB) if (j == "empty" or ("I don't" in j))]
+    print("No. of empty and 'i don't know' cases': " , len(index))
+    index = [i for i, j in enumerate(allB) if (j == "empty" or ("I don't" in j) or ("\n" in j) or ('\"' in j) )]
+    print("No. of empty and 'i don't know' , 'i don't' and multi-line (suspicious) cases': " , len(index))
     allA = np.asarray([x for i, x in enumerate(allA) if i not in index])
     allB = np.asarray([x for i, x in enumerate(allB) if i not in index])
     allS = np.asarray([x for i, x in enumerate(allS) if i not in index])
+    print("Average length of sentenceA ", sum(map(len, allA))/float(len(allA)))
+    print("Average length of sentenceB ", sum(map(len, allB))/float(len(allB)))
     
+    
+    #lengths = pd.len(allB) 
     
     ## shuffle the data
-    allS, allA, allB = shuffle(allS, allA, allB, random_state=1234)
+    allS, allA, allB = shuffle(allS, allA, allB, random_state=12345)
    
     
     ## split into 45% train, 5% dev and remaining ~50% test
@@ -316,25 +329,32 @@ def load_data(dataFile):
     trainB, devB, testB = allB[0 : int(math.floor(0.45 * len(allB)))], allB[int(math.floor(0.45 * len(allB))) + 1 : int(math.floor(0.5 * len(allB))) ], allB[int(math.floor(0.5 * len(allB))) + 1 : ]
     trainS, devS, testS = allS[0 : int(math.floor(0.45 * len(allS)))], allS[int(math.floor(0.45 * len(allS))) + 1 : int(math.floor(0.5 * len(allS))) ], allS[int(math.floor(0.5 * len(allS))) + 1 : ]
 
+    print len(allA)
+    print len(trainA)+len(devA)+len(testA)
     print len(trainA), len(devA), len(testA)
     return [trainA, trainB], [devA, devB], [testA, testB], [trainS, devS, testS]
 
-'''
 
 
 if __name__ == '__main__':
   
     #modelpath= '../trainedModels/'
     #model= FastSent.load(modelpath+'felixpaper_70m/FastSent_no_autoencoding_300_10_0')
-    #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = True)
+    #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = True, pairFeatures = False )
+    #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = True).to_csv('../data/local/IES-2Exp1A_AVG-FastSent.csv')
+    #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = True).to_csv('../data/local/IES-2Exp2A_AVG-FastSent.csv')
     ##evaluate(model, '../data/SICK/', evaltest=True, callable = True)
     
     
     #model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_300_6/vectorsW.bin")
-    #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False)
+    #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = False, pairFeatures = False )
+    #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = False).to_csv('../data/local/IES-2Exp1A_AVG-BOW.csv')
+    #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False).to_csv('../data/local/IES-2Exp2A_AVG-BOW.csv')
     ##evaluate(model, '../data/SICK/', evaltest=True, callable = False)
     
     
     model = models.featureBased()
-    ##evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False, pairFeatures = True )
-    evaluate(model, '../data/SICK/', evaltest=True, callable = False, pairFeatures = True)
+    #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/CollegeOldData-QS.csv')
+    #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = False, featureVector = True).to_csv('../data/local/IES-2Exp1A_AVG-QS.csv')
+    evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/IES-2Exp2A_AVG-QS.csv')
+    #evaluate(model, '../data/SICK/', evaltest=True, callable = False, featureVector = True)
