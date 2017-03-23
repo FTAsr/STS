@@ -24,6 +24,7 @@ Difficult:
 4. Lexical Substitution System
 5. Statistical Machine Translation [Moses SMT system]
 
+Experimental Setup:
 1. pre-processing phase, we tokenize the input texts and lemmatize using the Tree-Tagger implementation (Schmid, 1994)
 2. pre-computed similarity scores, and combines their log-transformed values using a linear regression classifier from the WEKA toolkit [Hall et al., 2009]
 3. Post Processing: stripped all characters off the texts which are not in the character range [a-zA-Z0-9]. If the texts match, we set their similarity score to 5.0 regardless of the classifier’s output.
