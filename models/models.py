@@ -16,7 +16,7 @@ from nltk.stem.porter import *
 
 
 
-import cPickle
+import _pickle as cPickle
 import pandas as pd
 from fuzzywuzzy import fuzz
 from tqdm import tqdm
@@ -203,14 +203,14 @@ class featureBased(object):
         return features
         
         
-'''''       
+      
 if __name__ == '__main__':
     f = featureBased()
-    print f.pairFeatures("Greatings my dear lady!", "Hi miss, where is Lady Gaga?")
-    print f.pairFeatures("This is a good new book!", "full of great stories")
-    print f.pairFeatures("Can't say anything", "But you said something")
-    print f.pairFeatures("mantel", "layer")
-''' 
+    print(f.pairFeatures("Greatings my dear lady!", "Hi miss, where is Lady Gaga?"))
+    print(f.pairFeatures("This is a good new book!", "full of great stories"))
+    print(f.pairFeatures("Can't say anything", "But you said something"))
+    print(f.pairFeatures("mantel", "layer"))
+
     
     
     

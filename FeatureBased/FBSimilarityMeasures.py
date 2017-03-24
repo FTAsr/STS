@@ -1,5 +1,8 @@
 from difflib import SequenceMatcher
 import numpy as np
+from scipy.stats.stats import pearsonr
+import collections
+from nltk.stem.wordnet import WordNetLemmatizer as lr
 
 #longest common substring
 def longestCommonsubstring(str1, str2):
@@ -166,4 +169,27 @@ def jaccard_similarity(text1, text2):
 
     return len(set1 & set2)/len(set1 | set2)
 
+def funcWordFreq(text1, text2):
+	# function words as defined in Dinu and Popescu, 2009.
+	function_words = ['a', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can', 'do', 'down', 'even', 'every', 'for', 'from', 
+	                  'had', 'has', 'have', 'her', 'his', 'if', 'in', 'into', 'is', 'it', 'its', 'may', 'more', 'must', 'my', 'no', 'not', 'now', 'of', 'on', 'one', 'only'
+	                  'or', 'our', 'shall', 'should', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'then', 'there', 'thing', 'this', 'to', 'up', 'upon',
+	                  'was', 'were', 'what', 'when', 'which', 'who', 'will', 'with', 'would', 'your']
+
+	
+	fdist1 = nltk.FreqDist([fw for fw in function_words if fw in text1])
+	fdist2 = nltk.FreqDist([fw for fw in function_words if fw in text2])
+
+	func_freq1, func_freq2 = [], []
+
+	for k,v in sorted(fdist1.items()):
+		func_freq1.append(v)
+
+	for k,v in sorted(fdist2.items()):
+		func_freq2.append(v)
+
+	return pearsonr(func_freq1, func_freq2)[0]
+
+
+		                  
 
