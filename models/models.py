@@ -44,7 +44,7 @@ class bow(object):
         sentenceVecs = list()
         sentenceVec = None
         for index, sentence in enumerate(sentences):
-            print(sentence)
+            #print(sentence)
             #print(type(sentence))
             sentence = sentence.lower().split()
             wordCount = 0
@@ -56,7 +56,7 @@ class bow(object):
                         sentenceVec = np.add(sentenceVec, self.w2vModel[word])
                     wordCount+=1
             if(wordCount == 0):
-                print(str(sentence))
+                #print(str(sentence))
                 raise ValueError("Cannot encode sentence " + str(index) + " : all words unknown to model!  ::" + str(sentence))
             else:
                 sentenceVecs.append(normalize(sentenceVec[:,np.newaxis], axis=0).ravel())
@@ -66,6 +66,7 @@ class bow(object):
         a = self.encode([sentenceA])
         b = self.encode([sentenceB])
         s = (1 - spatial.distance.cosine(a[0],b[0]))
+        print "word2vec score:", s
         return s
     
     
@@ -98,8 +99,8 @@ class quickScore(object):
 
 
     def sentence_similarity(self, sentenceA, sentenceB, stemming = 0):
-        exactMathc , corMatch, synMatch = self.features(sentenceA, sentenceB, stemming )
-        return (exactMatch + corMatch + synMatch) * 1.0 / len(keywords)
+        exactMatch , corMatch, synMatch, keywords = self.pairFeatures(sentenceA, sentenceB, stemming )
+        return (exactMatch + corMatch + synMatch) * 1.0 / keywords
         
     def pairFeatures(self, sentenceA, sentenceB, stemming = 0):
         ## Note that in quickScore, there is a difference between sentenceA and senteceB
@@ -144,10 +145,12 @@ class quickScore(object):
                     corMatch = corMatch + 1
                 elif (len( correctedsentenceB   & syns ) >= 1 ):
                         synMatch = synMatch + 1
+        ''''
         print("\nExact matches: " + str(exactMatch)+
             "\nCorrected mathces: " + str(corMatch)+
             "\nSynonymy matches: " + str(synMatch))
-        return exactMatch , corMatch , synMatch
+        '''
+        return exactMatch , corMatch , synMatch, len(keywords)
     
    
 class featureBased(object):
@@ -167,7 +170,7 @@ class featureBased(object):
         return
     def pairFeatures(self, sentenceA, sentenceB):
         features = list()
-        '''
+        
         ## len features all, chars, word
         features.append( len(sentenceA) )
         features.append( len(sentenceB) )
@@ -177,8 +180,10 @@ class featureBased(object):
         features.append( len(sentenceB.split()) ) 
         
         ## substring and n-gram features 
-        for length in (3,5,7,10):
+        for length in (3,5,7):
             features.append(  len(set(zip(*[sentenceA[i:] for i in range(length)])).intersection(set(zip(*[sentenceB[i:] for i in range(length)]))))  )
+        for length in range(1,5):
+            features.append(  len(set(zip(*[sentenceA.split()[i:] for i in range(length)])).intersection(set(zip(*[sentenceB.split()[i:] for i in range(length)]))))  )
         features.append( SequenceMatcher(None, sentenceA, sentenceB).find_longest_match(0, len(sentenceA), 0, len(sentenceB))[2]  )
         
         ## token features
@@ -190,7 +195,7 @@ class featureBased(object):
         features.append( fuzz.partial_token_sort_ratio(sentenceA, sentenceB) )
         features.append( fuzz.token_set_ratio(sentenceA, sentenceB) )
         features.append( fuzz.token_set_ratio(sentenceA, sentenceB) ) 
-        '''
+        
         ## word semantic features
         
         for f in self.qs.pairFeatures(sentenceA, sentenceB, stemming = 0):
@@ -202,14 +207,16 @@ class featureBased(object):
         
         return features
         
-        
-      
+
+'''''
 if __name__ == '__main__':
     f = featureBased()
-    print(f.pairFeatures("Greatings my dear lady!", "Hi miss, where is Lady Gaga?"))
-    print(f.pairFeatures("This is a good new book!", "full of great stories"))
-    print(f.pairFeatures("Can't say anything", "But you said something"))
-    print(f.pairFeatures("mantel", "layer"))
+    print f.pairFeatures("Greatings my dear lady!", "Hi miss, where is Lady Gaga?")
+    print f.pairFeatures("This is a good new book!", "full of great stories")
+    print f.pairFeatures("Can't say anything", "But you said something")
+    print f.pairFeatures("mantel", "layer")
+    print len(f.pairFeatures("mantel", "layer"))
+'''
 
     
     
