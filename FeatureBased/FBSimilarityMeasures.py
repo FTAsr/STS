@@ -2,7 +2,11 @@ from difflib import SequenceMatcher
 import numpy as np
 from scipy.stats.stats import pearsonr
 import collections
-from nltk.stem.wordnet import WordNetLemmatizer as lr
+import nltk
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk.corpus import stopwords
+import pprint
+import treetaggerwrapper
 
 #longest common substring
 def longestCommonsubstring(str1, str2):
@@ -36,7 +40,7 @@ def ngrams(input_list, n):
   return zip(*[input_list[i:] for i in range(n)])
 
 
-def tokenize(string, lowercase=False):
+def tokenize(text, lowercase=True):
     """Extract words from a string containing English words.
     Handling of hyphenation, contractions, and numbers is left to your
     discretion.
@@ -49,10 +53,17 @@ def tokenize(string, lowercase=False):
     """
     # YOUR CODE HERE
     if lowercase:
-        string = string.lower()
+        text = text.lower()
     tokens = re.findall(r"[\w']+|[.,!?;]", string)
-    return [w for w in tokens if w not in Q.punctuation]
+    return [w for w in tokens if w not in Q.punctuation and w not in stopwords.words('english')]
 
+def lemmatize(text):
+	lemmatizer = nltk.stem.wordnet.WordNetLemmatizer()
+	counter = 0
+	for token in text:
+		text[counter] = lemmatizer.lemmatize(token)
+		counter += 1
+	return text
 
 def shared_words(text1, text2):
     """Identify shared words in two texts written in English.
@@ -171,12 +182,8 @@ def jaccard_similarity(text1, text2):
 
 def funcWordFreq(text1, text2):
 	# function words as defined in Dinu and Popescu, 2009.
-	function_words = ['a', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can', 'do', 'down', 'even', 'every', 'for', 'from', 
-	                  'had', 'has', 'have', 'her', 'his', 'if', 'in', 'into', 'is', 'it', 'its', 'may', 'more', 'must', 'my', 'no', 'not', 'now', 'of', 'on', 'one', 'only'
-	                  'or', 'our', 'shall', 'should', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'then', 'there', 'thing', 'this', 'to', 'up', 'upon',
-	                  'was', 'were', 'what', 'when', 'which', 'who', 'will', 'with', 'would', 'your']
+	function_words = ['a', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can', 'do', 'down', 'even', 'every', 'for', 'from', 'had', 'has', 'have', 'her', 'his', 'if', 'in', 'into', 'is', 'it', 'its', 'may', 'more', 'must', 'my', 'no', 'not', 'now', 'of', 'on', 'one', 'only', 'or', 'our', 'shall', 'should', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'then', 'there', 'thing', 'this', 'to', 'up', 'upon', 'was', 'were', 'what', 'when', 'which', 'who', 'will', 'with', 'would', 'your']
 
-	
 	fdist1 = nltk.FreqDist([fw for fw in function_words if fw in text1])
 	fdist2 = nltk.FreqDist([fw for fw in function_words if fw in text2])
 
@@ -190,6 +197,21 @@ def funcWordFreq(text1, text2):
 
 	return pearsonr(func_freq1, func_freq2)[0]
 
+def preProcess(text1, text2):
+	#Tokenize the input and lemmatize using tree tagger implementation by Schmid.
+	tagger = treetaggerwrapper.TreeTagger(TAGLANG = 'en')
+	tags1 = tagger.tag_text(text1)
+	tags2 = tagger.tag_text(text2)
+	pprint.pprint(tags1)
+	pprint.pprint(tags2)
 
 		                  
+def postProcess(text1, text2):
+	text1 = re.sub(r'[\W_]+', '', text1)
+	text2 = re.sub(r'[\W_]+', '', text1)
 
+	if text1 == text2:
+		return 5.0
+	else:
+		#call classifier
+		pass
