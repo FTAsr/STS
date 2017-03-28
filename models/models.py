@@ -16,7 +16,7 @@ from nltk.stem.porter import *
 
 
 
-import cPickle
+import _pickle as cPickle
 import pandas as pd
 from fuzzywuzzy import fuzz
 from tqdm import tqdm
@@ -207,7 +207,7 @@ class featureBased(object):
         
         return features
         
-        
+
 '''''
 if __name__ == '__main__':
     f = featureBased()
@@ -217,6 +217,7 @@ if __name__ == '__main__':
     print f.pairFeatures("mantel", "layer")
     print len(f.pairFeatures("mantel", "layer"))
 '''
+
     
     
     
