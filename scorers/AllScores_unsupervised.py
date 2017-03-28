@@ -29,7 +29,8 @@ from scipy.stats import spearmanr
 from string import punctuation
 import numpy as np
 from sklearn.utils import shuffle
-
+import pandas as pd
+import math
 
 
     
@@ -67,14 +68,16 @@ def ensemble(allModels, dataFile):
 
     scores=[]
     goldstandardscores=[]
-
+    result = list()#(a, columns = ['target','response','score','prediction','error'])
     for a,b,s in zip(finalA,finalB, finalS):
         try:
             fs, split = scorer(process(a),process(b))
             scores.append(fs)
             goldstandardscores.append(s)
-            print a,b,s,fs, split
-            okis += 1            
+            print a,":",b,s,fs, split
+            okis += 1     
+            record = [a,b,s,fs] + split
+            result.append( record )
         except KeyError as e:
             print("Not in vocabulary:%s"%e)
             print("Original sentences: %s, %s"%(a,b))
@@ -95,7 +98,9 @@ def ensemble(allModels, dataFile):
     print("Pearson score: " + str(pearsonr(scores,goldstandardscores)))
     print("Spearman score: " + str(spearmanr(scores,goldstandardscores)))
     print("********************************")
-
+    
+    result = pd.DataFrame(result, columns = ['target','response','gold-score','prediction','QS', 'W2V', 'FS'] )
+    return result
     
     
 def evaluate(model, dataFile):
@@ -201,13 +206,13 @@ def load_data(dataFile):
     allA = allA[1:]
     allB = allB[1:]
     allS = [float(s) for s in allS[1:]]
-    allS = [(x * 4 + 1) for x in allS] ## scale [0,1] values to [1,5] like in SICK data
+    #allS = [(x * 4 + 1) for x in allS] ## scale [0,1] values to [1,5] like in SICK data
     
     ## remove useless datapoints
-    index = [i for i, j in enumerate(allB) if (j == "empty" or ("I don't" in j))]
+    index = [i for i, j in enumerate(allB) if (j == "empty" or ("i don't" in j.lower()) or ("idk" in j.lower()) )]
     print("No. of empty and 'i don't know' cases': " , len(index))
-    index = [i for i, j in enumerate(allB) if (j == "empty" or ("I don't" in j) or ("\n" in j) or ('\"' in j) )]
-    print("No. of empty and 'i don't know' , 'i don't' and multi-line (suspicious) cases': " , len(index))
+    index = [i for i, j in enumerate(allB) if (j == "empty" or ("i don't" in j.lower()) or ("idk" in j.lower()) or ("\n" in j) or ('\"' in j) )]
+    print("No. of empty and 'i don't know' , and multi-line (suspicious) cases': " , len(index))
     allA = np.asarray([x for i, x in enumerate(allA) if i not in index])
     allB = np.asarray([x for i, x in enumerate(allB) if i not in index])
     allS = np.asarray([x for i, x in enumerate(allS) if i not in index])
@@ -219,6 +224,12 @@ def load_data(dataFile):
     ## shuffle the data
     allS, allA, allB = shuffle(allS, allA, allB, random_state=12345)
 
+    ## split into 45% train, 5% dev and remaining ~50% test
+    trainA, devA, testA = allA[0 : int(math.floor(0.45 * len(allA)))], allA[int(math.floor(0.45 * len(allA))) + 1 : int(math.floor(0.5 * len(allA))) ], allA[int(math.floor(0.5 * len(allA))) + 1 : ]
+    trainB, devB, testB = allB[0 : int(math.floor(0.45 * len(allB)))], allB[int(math.floor(0.45 * len(allB))) + 1 : int(math.floor(0.5 * len(allB))) ], allB[int(math.floor(0.5 * len(allB))) + 1 : ]
+    trainS, devS, testS = allS[0 : int(math.floor(0.45 * len(allS)))], allS[int(math.floor(0.45 * len(allS))) + 1 : int(math.floor(0.5 * len(allS))) ], allS[int(math.floor(0.5 * len(allS))) + 1 : ]
+    
+    
     return [allA, allB], allS
 
 
@@ -251,8 +262,10 @@ if __name__ == '__main__':
     ## ensemble test:
     allModels = list()
     modelpath= '../trainedModels/'
-    allModels.append( FastSent.load(modelpath+'felixpaper_70m/FastSent_no_autoencoding_300_10_0') )
     allModels.append( models.quickScore() )
     allModels.append( models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_300_6/vectorsW.bin") )
-    ensemble(allModels, '../data/local/CollegeOldData_HighAgreementPartialScoring.txt')
+    allModels.append( FastSent.load(modelpath+'felixpaper_70m/FastSent_no_autoencoding_300_10_0') )
+    ensemble(allModels, '../data/local/CollegeOldData_HighAgreementPartialScoring.txt').to_csv('../data/local/CollegeOldData_HighAgreementPartialScoring-unsupervised.csv')
+    
+    
     
