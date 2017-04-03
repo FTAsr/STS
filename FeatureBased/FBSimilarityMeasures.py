@@ -6,12 +6,12 @@ import nltk
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.corpus import stopwords
 import pprint
-import treetaggerwrapper
+#import treetaggerwrapper
 
 #longest common substring
 def longestCommonsubstring(str1, str2):
     match = SequenceMatcher(None, str1, str2).find_longest_match(0, len(str1), 0, len(str2))
-    return str1[match.a: match.a + match.size]
+    return len(str1[match.a: match.a + match.size])/ (len(str1) + len(str2))
 
 #longest common subsequence => contiguity requirement is dropped.	
 def longestCommonSubseq(str1 , str2):
@@ -33,7 +33,7 @@ def longestCommonSubseq(str1 , str2):
             else:
                 lcs[i][j] = max(lcs[i-1][j] , lcs[i][j-1])
  
-    return lcs[m][n]
+    return lcs[m][n]/ (len(str1) + len(str2))
 
 # ToDo char/word n-grams
 def ngrams(input_list, n):
@@ -184,8 +184,9 @@ def funcWordFreq(text1, text2):
 	# function words as defined in Dinu and Popescu, 2009.
 	function_words = ['a', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can', 'do', 'down', 'even', 'every', 'for', 'from', 'had', 'has', 'have', 'her', 'his', 'if', 'in', 'into', 'is', 'it', 'its', 'may', 'more', 'must', 'my', 'no', 'not', 'now', 'of', 'on', 'one', 'only', 'or', 'our', 'shall', 'should', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'then', 'there', 'thing', 'this', 'to', 'up', 'upon', 'was', 'were', 'what', 'when', 'which', 'who', 'will', 'with', 'would', 'your']
 
-	fdist1 = nltk.FreqDist([fw for fw in function_words if fw in text1])
-	fdist2 = nltk.FreqDist([fw for fw in function_words if fw in text2])
+
+	fdist1 = nltk.FreqDist([fw if fw in text1 else fw+'no' for fw in function_words])
+	fdist2 = nltk.FreqDist([fw if fw in text2 else fw+'no' for fw in function_words])
 
 	func_freq1, func_freq2 = [], []
 
@@ -196,6 +197,40 @@ def funcWordFreq(text1, text2):
 		func_freq2.append(v)
 
 	return pearsonr(func_freq1, func_freq2)[0]
+
+def gst(a,b,minlength):
+    if len(a) == 0 or len(b) == 0:
+        return []
+
+    class markit:
+        a=[0]
+        minlen=2
+    markit.a=[0]*len(a)
+    markit.minlen=minlength
+
+    #output char index
+    out=[]
+
+    # To find the max length substr (index)
+    # apos is the position of a[0] in origin string
+    def maxsub(a,b,apos=0,lennow=0):
+        if (len(a) == 0 or len(b) == 0):
+            return []
+        if (a[0]==b[0] and markit.a[apos]!=1 ):
+            return [apos]+maxsub(a[1:],b[1:],apos+1,lennow=lennow+1)
+        elif (a[0]!=b[0] and lennow>0):
+            return []
+        return max(maxsub(a, b[1:],apos), maxsub(a[1:], b,apos+1), key=len)
+    
+	while True:
+        findmax=maxsub(a,b,0,0)
+        if (len(findmax)<markit.minlen):
+            break
+        else:
+            for i in findmax:
+                markit.a[i]=1
+            out+=findmax
+    return len([a[i] for i in out])
 
 def preProcess(text1, text2):
 	#Tokenize the input and lemmatize using tree tagger implementation by Schmid.
