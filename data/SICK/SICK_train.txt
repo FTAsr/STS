@@ -26,7 +26,7 @@ pair_ID	sentence_A	sentence_B	relatedness_score	entailment_judgment
 70	Two children are lying in the snow and are drawing angels	Two people in snowsuits are lying in the snow and making snow angels	4.1	NEUTRAL
 72	Two people in snowsuits are lying in the snow and making snow angels	Two angels are making snow on the lying children	2.5	NEUTRAL
 73	Two children are lying in the snow and are making snow angels	Two people in snowsuits are lying in the snow and making snow angels	4.2	NEUTRAL
-77	People wearing costumes are gathering in a forest and are looking in the same direction	Masked people are looking in the same direction in a forest	4.4	ENTAILMENT
+77	People wearing costumes are gathering in a forest and are looking in the same direction	Masked people are looking in the same direction in a forest    4.4    ENTAILMENT
 78	People wearing costumes are gathering in a forest and are looking in the same direction	People wearing costumes are scattering in a forest and are looking in different directions	3.2	NEUTRAL
 79	People are looking at some costumes gathered in the vicinity of the forest	People wearing costumes are gathering in a forest and are looking in the same direction	3.635	NEUTRAL
 81	A little girl is looking at a woman in costume	People wearing costumes are scattering in a forest and are looking in different directions	2.4	NEUTRAL
