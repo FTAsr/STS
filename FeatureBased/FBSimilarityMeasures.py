@@ -239,8 +239,7 @@ def preProcess(text1, text2):
 	tags2 = tagger.tag_text(text2)
 	pprint.pprint(tags1)
 	pprint.pprint(tags2)
-
-		                  
+                  
 def postProcess(text1, text2):
 	text1 = re.sub(r'[\W_]+', '', text1)
 	text2 = re.sub(r'[\W_]+', '', text1)
