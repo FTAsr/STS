@@ -270,6 +270,16 @@ if __name__ == '__main__':
     Y_train = data['relatedness_score']
     X_train = data.drop(['relatedness_score'], axis=1)
 
+    #Using statsmodels
+    import statsmodels.formula.api as smf
+
+    # create a fitted model in one line
+    lm = smf.ols(formula='Sales ~ TV', data=data).fit()
+
+    # print the coefficients
+    lm.params
+    lm.summary()
+
     from sklearn import linear_model
     regr = linear_model.LinearRegression()
 
