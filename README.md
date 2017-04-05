@@ -1,5 +1,6 @@
 # STS
 
+## Notes on the feature-based method:
 Easy:
 1. Longest Common Substring
 2. Longest Common Subsequence
