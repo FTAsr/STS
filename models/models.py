@@ -16,7 +16,7 @@ from nltk.stem.porter import *
 
 
 
-import _pickle as cPickle
+
 import pandas as pd
 from fuzzywuzzy import fuzz
 from tqdm import tqdm
@@ -66,8 +66,18 @@ class bow(object):
         a = self.encode([sentenceA])
         b = self.encode([sentenceB])
         s = (1 - spatial.distance.cosine(a[0],b[0]))
-        print "word2vec score:", s
+        #print "word2vec score:", s
         return s
+    
+    def pairFeatures(self, sentenceA, sentenceB):
+        #obtains the distributional representation of each sentence 
+        #generate element-wise subtraction and multiplication features
+        a = self.encode([sentenceA])
+        b = self.encode([sentenceB])
+        f = np.c_[np.abs(a - b), a * b]
+        #print len(f[0]), " word2vec features generated"
+        return f[0]
+    
     
     
 class quickScore(object):    
@@ -164,13 +174,14 @@ class featureBased(object):
     qs = None
     
     def __init__(self):
-        print("featureBased init: loading word2vec model")
+        print("featureBased init: loading feature-based model")
         self.stoplist = stopwords.words('english')
         self.qs = quickScore()
         return
     def pairFeatures(self, sentenceA, sentenceB):
         features = list()
         
+        '''''
         ## len features all, chars, word
         features.append( len(sentenceA) )
         features.append( len(sentenceB) )
@@ -195,6 +206,7 @@ class featureBased(object):
         features.append( fuzz.partial_token_sort_ratio(sentenceA, sentenceB) )
         features.append( fuzz.token_set_ratio(sentenceA, sentenceB) )
         features.append( fuzz.token_set_ratio(sentenceA, sentenceB) ) 
+        '''
         
         ## word semantic features
         

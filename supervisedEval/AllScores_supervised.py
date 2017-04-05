@@ -200,7 +200,7 @@ def prepare_model(ninputs=9600, nclass=5):
     Set up and compile the model architecture (Logistic regression)
     """
     lrmodel = Sequential()
-    lrmodel.add(Dense(nclass, input_dim=28)) #set this to twice the size of sentence vector or equal to the final feature vector size
+    lrmodel.add(Dense(nclass, input_dim=200)) #set this to twice the size of sentence vector or equal to the final feature vector size
     lrmodel.add(Activation('softmax'))
     lrmodel.compile(loss='categorical_crossentropy', optimizer='adam')
     return lrmodel
@@ -250,7 +250,7 @@ def encode_labels(labels, nclass=5):
                 Y[j,i] = np.floor(y) - y + 1
     return Y
 
-'''
+
 def load_data(loc='../data/SICK/'):
     """
     Load the SICK semantic-relatedness dataset
@@ -334,7 +334,7 @@ def load_data(dataFile):
     print len(trainA), len(devA), len(testA)
     return [trainA, trainB], [devA, devB], [testA, testB], [trainS, devS, testS]
 
-
+'''
 
 if __name__ == '__main__':
   
@@ -343,18 +343,18 @@ if __name__ == '__main__':
     #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = True, pairFeatures = False )
     #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = True).to_csv('../data/local/IES-2Exp1A_AVG-FastSent.csv')
     #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = True).to_csv('../data/local/IES-2Exp2A_AVG-FastSent.csv')
-    ##evaluate(model, '../data/SICK/', evaltest=True, callable = True)
+    ##evaluate(model, '../data/SICK/', evaltest=True, callable = True, featureVector = True)
     
     
-    #model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_300_6/vectorsW.bin")
+    model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
     #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = False, pairFeatures = False )
     #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = False).to_csv('../data/local/IES-2Exp1A_AVG-BOW.csv')
     #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False).to_csv('../data/local/IES-2Exp2A_AVG-BOW.csv')
-    ##evaluate(model, '../data/SICK/', evaltest=True, callable = False)
+    evaluate(model, '../data/SICK/', evaltest=True, callable = False, featureVector = True)
     
     
-    model = models.featureBased()
+    #model = models.featureBased()
     #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/CollegeOldData-QS.csv')
     #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = False, featureVector = True).to_csv('../data/local/IES-2Exp1A_AVG-QS.csv')
-    evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/IES-2Exp2A_AVG-QS.csv')
+    #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/IES-2Exp2A_AVG-QS.csv')
     #evaluate(model, '../data/SICK/', evaltest=True, callable = False, featureVector = True)
