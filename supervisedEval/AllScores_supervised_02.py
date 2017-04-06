@@ -42,27 +42,30 @@ errorFlag = ["error flag"]
 def process(s): return [i.lower().translate(None, punctuation).strip() for i in s]
 
 ## find features (a vector) describing the relation between two sentences
-def pairFeatures(model, a,b):
+def pairFeatures(models, a,b):
     print "using method pairFeatures!"
     result = list()
     for sentenceA,sentenceB in itertools.izip(a,b):
         try:
-            #print "Sentence A: " + sentenceA + "\t Sentence B: " +  sentenceB
-            x = model.pairFeatures(sentenceA,sentenceB)
-            result.append(x)
+            vector = list()
+            for index , model in enumerate(models):
+                part = model.pairFeatures(sentenceA,sentenceB)
+                vector.extend(part)
+                #print sentenceA, " & " , sentenceB , " Model " , index  , ":" , part
+            result.append(vector)
         except:
             print("ERROR: " + sentenceA + " & " +  sentenceB)
             result.append(errorFlag)
     return result
         
-def train(model, trainSet, devSet, seed=1234): 
+def train(models, trainSet, devSet, seed=1234): 
     ## Takes an input model that can calculate similarity features for sentence pairs
     ## Returns a linear regression classifier on provided (gold) similarity scores
             
     trainSet[0], trainSet[1], trainSet[2] = shuffle(trainSet[0], trainSet[1], trainSet[2], random_state=seed) 
    
     print 'Computing feature vectors directly through model.pairFeatures() ...'
-    trainF = np.asarray( pairFeatures(model, process(trainSet[0]), process(trainSet[1])) )
+    trainF = np.asarray( pairFeatures(models, process(trainSet[0]), process(trainSet[1])) )
     trainY = encode_labels(trainSet[2])
     
     index = [i for i, j in enumerate(trainF) if j ==  errorFlag]
@@ -70,7 +73,7 @@ def train(model, trainSet, devSet, seed=1234):
     trainY = np.asarray([x for i, x in enumerate(trainY) if i not in index])
     trainS = np.asarray([x for i, x in enumerate(trainSet[0]) if i not in index])
     
-    devF = np.asarray( pairFeatures(model, process(devSet[0]), process(devSet[1])) )
+    devF = np.asarray( pairFeatures(models, process(devSet[0]), process(devSet[1])) )
     devY = encode_labels(devSet[2])
     
     index = [i for i, j in enumerate(devF) if j ==  errorFlag]
@@ -79,7 +82,8 @@ def train(model, trainSet, devSet, seed=1234):
     devS = np.asarray([x for i, x in enumerate(devSet[2]) if i not in index])
     
     print 'Compiling model...'
-    lrmodel = prepare_model(ninputs=trainF.shape[1])
+    print(trainF.shape)
+    lrmodel = prepare_model(dim= trainF.shape[1])#, ninputs=trainF.shape[0])
 
     print 'Training...'
     bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, devS)
@@ -102,12 +106,12 @@ def train(model, trainSet, devSet, seed=1234):
     
 
 
-def test(model, classifier, testSet):
+def test(models, classifier, testSet):
     ## Takes a linear regression classifier already trained for scoring similarity between two sentences based on the model
     ## Returns predicted scores for the input dataset together with error of calssification
     
     print 'Computing feature vectors directly through model.pairFeatures() ...'
-    testF = np.asarray( pairFeatures(model, process(testSet[0]), process(testSet[1])) )
+    testF = np.asarray( pairFeatures(models, process(testSet[0]), process(testSet[1])) )
     index = [i for i, j in enumerate(testF) if j ==  errorFlag]
     testF = np.asarray([x for i, x in enumerate(testF) if i not in index])
     testS = np.asarray([x for i, x in enumerate(testSet[2]) if i not in index])
@@ -134,12 +138,12 @@ def test(model, classifier, testSet):
     
 
 
-def prepare_model(ninputs=9600, nclass=5):
+def prepare_model(dim, nclass=5):
     """
     Set up and compile the model architecture (Logistic regression)
     """
     lrmodel = Sequential()
-    lrmodel.add(Dense(nclass, input_dim=8)) #set this to twice the size of sentence vector or equal to the final feature vector size
+    lrmodel.add(Dense(nclass, input_dim=dim)) #set this to twice the size of sentence vector or equal to the final feature vector size
     lrmodel.add(Activation('softmax'))
     lrmodel.compile(loss='categorical_crossentropy', optimizer='adam')
     return lrmodel
@@ -270,111 +274,256 @@ def load_data(dataFile):
 
 
 if __name__ == '__main__':
-     
+    
+    ensemble = list()
+    
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
     #model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
+    ensemble.append(models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_300_6/vectorsW.bin"))
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    model = models.featureBased()
+    ensemble.append(models.featureBased())
+    
     
     ## Load some data for training (standard SICK dataset)
     trainSet, devSet, testSet = load_data_SICK('../data/SICK/')
 
     ## Train a classifier using train and development subsets
-    classifier = train(model, trainSet, devSet)
+    classifier = train(ensemble, trainSet, devSet)
     
     ## Test the classifier on test data of the same type (coming from SICK)
-    test(model, classifier, testSet).to_csv('../data/local/SICK-trained_SICK-test.csv')
+    test(ensemble, classifier, testSet).to_csv('../data/local/SICK-trained_SICK-test.csv')
 
     ## FileName to save the trained classifier for later use
     fileName = '../data/local/SICK-Classifier.h5'
-    
-    
-    '''
-    ## VERSION ONE SAVE / LOAD (didn't work)
-    ## save model to json
-    model_json = classifier.to_json()
-    with open(fileName, "w") as json_file:
-        json_file.write(model_json)  
-    ## load model fron json
-    json_file = open(fileName, 'r')
-    loaded_model_json = json_file.read()
-    json_file.close()
-    classifier = model_from_json(loaded_model_json)
-    '''
-    '''
-    ## VERSION TWO SAVE / LOAD (didn't work)
-    pickle.dump( classifier.get_config(), open( fileName, 'w') ) 
-    newClasssifier = prepare_model().from_config( pickle.load( open( fileName, 'r') ) ) 
-    '''
     
     ## VERSION THREE SAVE / LOAD (the only one that works)
     classifier.save(fileName)
     newClassifier = load_model(fileName)
     
     ## Test the saved and loaded classifier on the testSet again (to make sure the classifier didn't mess up by saving on disk)
-    test(model, newClassifier, testSet)
+    test(ensemble, newClassifier, testSet)
     
     
     
     ## Now we can also test the classifier on a new type of data to see how it generalizes
     
     x, y, testSet = load_data('../data/local/CollegeOldData_HighAgreementPartialScoring.txt')
-    test(model, classifier,testSet).to_csv('../data/local/SICK-trained_College-test.csv')
+    test(ensemble, newClassifier,testSet).to_csv('../data/local/SICK-trained_College-test.csv')
     
     x, y, testSet = load_data('../data/local/IES-2Exp1A_AVG.txt')
-    test(model, classifier,testSet).to_csv('../data/local/SICK-trained_Exp1A-test.csv')
+    test(ensemble, newClassifier,testSet).to_csv('../data/local/SICK-trained_Exp1A-test.csv')
     
     x, y, testSet = load_data('../data/local/IES-2Exp2A_AVG.txt')
-    test(model, classifier,testSet).to_csv('../data/local/SICK-trained_Exp2A-test.csv')
+    test(ensemble, newClassifier,testSet).to_csv('../data/local/SICK-trained_Exp2A-test.csv')
     
     
     
     
-    ## Results you should see for the featurBased model:
+    ## ************ Results you should see for the featurBased model ********************
     
     '''
+    ## On SICK
     ************ SUMMARY ***********
     Train data size: 4500
     Dev data size: 500
-    Dev Pearson: 0.680430104387
-    Dev Spearman: 0.59739415746
-    Dev MSE: 0.543775155112
+    Dev Pearson: 0.68317444312
+    Dev Spearman: 0.603564634109
+    Dev MSE: 0.54053293042
     ********************************
-
     ************ SUMMARY ***********
     Test data size: 4927
-    Test Pearson: 0.678987258744
-    Test Spearman: 0.570894259179
-    Test MSE: 0.549014460217
+    Test Pearson: 0.67703114953
+    Test Spearman: 0.572650244024
+    Test MSE: 0.552484086087
     ********************************
     
-    ************ SUMMARY ***********
-    Test data size: 4927
-    Test Pearson: 0.678987258744
-    Test Spearman: 0.570894259179
-    Test MSE: 0.549014460217
-    ********************************
-
+    ## On College
     ************ SUMMARY ***********
     Test data size: 2377
-    Test Pearson: 0.656753809535
-    Test Spearman: 0.697348031803
-    Test MSE: 1.71331450406
+    Test Pearson: 0.681083130923
+    Test Spearman: 0.73253706934
+    Test MSE: 1.69282707345
     ********************************
     
+    ## On School
     ************ SUMMARY ***********
     Test data size: 1035
-    Test Pearson: 0.838432922487
-    Test Spearman: 0.836839151701
-    Test MSE: 1.84422450182
+    Test Pearson: 0.83391286139
+    Test Spearman: 0.831616548407
+    Test MSE: 1.88451794659
     ********************************
-    
     ************ SUMMARY ***********
     Test data size: 831
-    Test Pearson: 0.943983912084
-    Test Spearman: 0.911776566999
-    Test MSE: 2.19757564184
+    Test Pearson: 0.940048293417
+    Test Spearman: 0.912269550125
+    Test MSE: 2.13254902436
+    ********************************
+    '''
+    
+    ## ************ Results you should see for the bow model with dim=100 ********************
+    
+    '''
+    ## On SICK
+    ************ SUMMARY ***********
+    Train data size: 4500
+    Dev data size: 500
+    Dev Pearson: 0.727533547056
+    Dev Spearman: 0.677997133494
+    Dev MSE: 0.477910879944
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 4927
+    Test Pearson: 0.746349505723
+    Test Spearman: 0.668270733008
+    Test MSE: 0.451736894059
+    ********************************
+    
+    ## On College
+    ************ SUMMARY ***********
+    Test data size: 2376
+    Test Pearson: 0.574411300623
+    Test Spearman: 0.611559028791
+    Test MSE: 1.82576252723
+    ********************************
+    
+    ## On School
+    ************ SUMMARY ***********
+    Test data size: 926
+    Test Pearson: 0.786136186643
+    Test Spearman: 0.774748380124
+    Test MSE: 1.40489704198
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 799
+    Test Pearson: 0.836778366975
+    Test Spearman: 0.768867968766
+    Test MSE: 1.26408862889
+    ********************************
+    '''
+    
+    ## ************ Results you should see for the bow model with dim=300 ********************
+    
+    '''
+    ## On SICK
+    ************ SUMMARY ***********
+    Train data size: 4500
+    Dev data size: 500
+    Dev Pearson: 0.772813304907
+    Dev Spearman: 0.71773528102
+    Dev MSE: 0.407975879066
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 4927
+    Test Pearson: 0.786754475063
+    Test Spearman: 0.709340431472
+    Test MSE: 0.387911887528
+    ********************************
+    
+    ## On College
+    ************ SUMMARY ***********
+    Test data size: 2372
+    Test Pearson: 0.582303402137
+    Test Spearman: 0.613536855185
+    Test MSE: 1.90456106447
+    ********************************
+    
+    ## On School
+    ************ SUMMARY ***********
+    Test data size: 891
+    Test Pearson: 0.805684602555
+    Test Spearman: 0.787189288495
+    Test MSE: 1.32262017049
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 786
+    Test Pearson: 0.920134997428
+    Test Spearman: 0.79645383768
+    Test MSE: 0.581767156877
+    ********************************
+    '''
+    
+    
+    ## ************ Results you should see for the bow model with dim=100 + featureBased ********************
+    
+    ''''
+    ## On SICK
+    ************ SUMMARY ***********
+    Train data size: 4500
+    Dev data size: 500
+    Dev Pearson: 0.764599637721
+    Dev Spearman: 0.707902834244
+    Dev MSE: 0.419814975758
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 4927
+    Test Pearson: 0.783003891986
+    Test Spearman: 0.693562436578
+    Test MSE: 0.394127547639
+    ********************************
+    
+    ## On College
+    ************ SUMMARY ***********
+    Test data size: 2376
+    Test Pearson: 0.599892044715
+    Test Spearman: 0.626315623556
+    Test MSE: 1.81572431625
+    ********************************
+    
+    ## On School
+    ************ SUMMARY ***********
+    Test data size: 926
+    Test Pearson: 0.775438334137
+    Test Spearman: 0.785787532287
+    Test MSE: 1.50447449955
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 799
+    Test Pearson: 0.850723174714
+    Test Spearman: 0.781897416258
+    Test MSE: 1.42706077904
+    ********************************
+    '''
+    
+    ## ************ Results you should see for the bow model with dim=300 + featureBased ********************
+    
+    ''''
+    ## On SICK
+    ************ SUMMARY ***********
+    Train data size: 4500
+    Dev data size: 500
+    Dev Pearson: 0.784315968232
+    Dev Spearman: 0.724620203193
+    Dev MSE: 0.389213268763
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 4927
+    Test Pearson: 0.803371464158
+    Test Spearman: 0.718421842395
+    Test MSE: 0.360926957777
+    ********************************
+    
+    ## On College
+    ************ SUMMARY ***********
+    Test data size: 2372
+    Test Pearson: 0.611119924197
+    Test Spearman: 0.645276932097
+    Test MSE: 1.85418252049
+    ********************************
+    
+    ## On School
+    ************ SUMMARY ***********
+    Test data size: 891
+    Test Pearson: 0.819694779591
+    Test Spearman: 0.79691695501
+    Test MSE: 1.20898036887
+    ********************************
+    ************ SUMMARY ***********
+    Test data size: 786
+    Test Pearson: 0.933417623332
+    Test Spearman: 0.800096195729
+    Test MSE: 0.533236823978
     ********************************
     
     '''
+    
