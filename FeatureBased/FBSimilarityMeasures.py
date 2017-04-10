@@ -141,7 +141,7 @@ def lexical_density(string):
 
 def ttr(text):
     """Type to text ratio using standard word_tokenize method"""
-    tokens = word_tokenize(text)
+    tokens = nltk.tokenize.word_tokenize(text)
     return len(set(tokens))/len(tokens)
 
 def wordPairDist(word1, word2, words):
@@ -181,22 +181,30 @@ def jaccard_similarity(text1, text2):
     return len(set1 & set2)/len(set1 | set2)
 
 def funcWordFreq(text1, text2):
-	# function words as defined in Dinu and Popescu, 2009.
-	function_words = ['a', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can', 'do', 'down', 'even', 'every', 'for', 'from', 'had', 'has', 'have', 'her', 'his', 'if', 'in', 'into', 'is', 'it', 'its', 'may', 'more', 'must', 'my', 'no', 'not', 'now', 'of', 'on', 'one', 'only', 'or', 'our', 'shall', 'should', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'then', 'there', 'thing', 'this', 'to', 'up', 'upon', 'was', 'were', 'what', 'when', 'which', 'who', 'will', 'with', 'would', 'your']
+    # function words as defined in Dinu and Popescu, 2009.
+    function_words = ['a', 'all', 'also', 'an', 'and', 'any', 'are', 'as', 'at', 'be', 'been', 'but', 'by', 'can', 'do', 'down', 'even', 'every', 'for', 'from', 'had', 'has', 'have', 'her', 'his', 'if', 'in', 'into', 'is', 'it', 'its', 'may', 'more', 'must', 'my', 'no', 'not', 'now', 'of', 'on', 'one', 'only', 'or', 'our', 'shall', 'should', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'then', 'there', 'thing', 'this', 'to', 'up', 'upon', 'was', 'were', 'what', 'when', 'which', 'who', 'will', 'with', 'would', 'your']
 
 
-	fdist1 = nltk.FreqDist([fw if fw in text1 else fw+'no' for fw in function_words])
-	fdist2 = nltk.FreqDist([fw if fw in text2 else fw+'no' for fw in function_words])
+    fdist1 = nltk.FreqDist([fw if fw in text1 else fw+'no' for fw in function_words])
+    fdist2 = nltk.FreqDist([fw if fw in text2 else fw+'no' for fw in function_words])
 
-	func_freq1, func_freq2 = [], []
+    func_freq1, func_freq2 = [], []
 
-	for k,v in sorted(fdist1.items()):
-		func_freq1.append(v)
+    for k,v in sorted(fdist1.items()):
+        func_freq1.append(v)
 
-	for k,v in sorted(fdist2.items()):
-		func_freq2.append(v)
+    for k,v in sorted(fdist2.items()):
+        func_freq2.append(v)
 
-	return pearsonr(func_freq1, func_freq2)[0]
+    import warnings
+    warnings.filterwarnings('error')
+    pr = 0
+    try:
+        pr = pearsonr(func_freq1, func_freq2)[0]
+    except:
+        pass
+    
+    return pr
 
 def gst(a,b,minlength):
     if len(a) == 0 or len(b) == 0:
@@ -221,15 +229,15 @@ def gst(a,b,minlength):
         elif (a[0]!=b[0] and lennow>0):
             return []
         return max(maxsub(a, b[1:],apos), maxsub(a[1:], b,apos+1), key=len)
-    
-	while True:
-        findmax=maxsub(a,b,0,0)
-        if (len(findmax)<markit.minlen):
-            break
-        else:
-            for i in findmax:
-                markit.a[i]=1
-            out+=findmax
+
+        while True:
+            findmax=maxsub(a,b,0,0)
+            if (len(findmax)<markit.minlen):
+                break
+            else:
+                for i in findmax:
+                    markit.a[i]=1
+                out+=findmax
     return len([a[i] for i in out])
 
 def preProcess(text1, text2):

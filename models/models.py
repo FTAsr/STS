@@ -2,18 +2,21 @@
 import sys
 import os
 sys.path.append('/home/ds/STS/FeatureBased')
+sys.path.append('/home/ds/STS/utils')
 import imp
 imp.find_module('FBSimilarityMeasures', ['/home/ds/STS/FeatureBased'])
 imp.find_module('utils', ['/home/ds/STS/utils'])
 
-sys.path = ['../utils'] + sys.path
-#import utils
+#sys.path = ['../utils'] + sys.path
+import utils
 import FBSimilarityMeasures as fb
 
 import numpy as np
 #from gensim.models import Word2Vec
 from sklearn.preprocessing import normalize
 from scipy import spatial
+import statsmodels.formula.api as smf
+from statsmodels.regression.linear_model import RegressionResults
 
 import nltk
 from nltk.corpus import stopwords
@@ -34,8 +37,8 @@ from scipy.stats import skew, kurtosis
 from scipy.spatial.distance import cosine, cityblock, jaccard, canberra, euclidean, minkowski, braycurtis
 from nltk import word_tokenize
 from difflib import SequenceMatcher
-
-
+from scipy.stats.stats import pearsonr
+from sklearn import svm
 
 
 class bow(object):
@@ -176,78 +179,62 @@ class featureBased(object):
     def __init__(self):
         print("featureBased init: loading word2vec model")
         self.stoplist = stopwords.words('english')
-        #self.qs = quickScore()
+        self.qs = quickScore()
         return
         
     def pairFeatures(self, sentenceA, sentenceB):
-        features = list()
-        
-        ## len features all, chars, word
-        features.append( len(sentenceA) )
-        features.append( len(sentenceB) )
-        features.append( len(''.join(set(sentenceA.replace(' ', '')))) ) 
-        features.append( len(''.join(set(sentenceB.replace(' ', '')))) ) 
-        features.append( len(sentenceA.split()) )
-        features.append( len(sentenceB.split()) ) 
-
-        features.append(fb.longestCommonsubstring(sentenceA, sentenceB))
-        features.append(fb.longestCommonSubseq(sentenceA, sentenceB))
-        features.append(fb.funcWordFreq(sentenceA, sentenceB))
-        
+        features = []
+             
         ## substring and n-gram features 
         for length in (3,5,7):
             features.append(  len(set(zip(*[sentenceA[i:] for i in range(length)])).intersection(set(zip(*[sentenceB[i:] for i in range(length)]))))  )
         for length in range(1,5):
             features.append(  len(set(zip(*[sentenceA.split()[i:] for i in range(length)])).intersection(set(zip(*[sentenceB.split()[i:] for i in range(length)]))))  )
-        features.append( SequenceMatcher(None, sentenceA, sentenceB).find_longest_match(0, len(sentenceA), 0, len(sentenceB))[2]  )
-        
-        ## token features
-        features.append( len(set(sentenceA.lower().split()).intersection(set(sentenceB.lower().split()))) ) 
-        features.append( fuzz.QRatio(sentenceA, sentenceB) ) 
-        features.append( fuzz.WRatio(sentenceA, sentenceB) ) 
-        features.append( fuzz.partial_ratio(sentenceA, sentenceB) ) 
-        features.append( fuzz.partial_token_set_ratio(sentenceA, sentenceB) ) 
-        features.append( fuzz.partial_token_sort_ratio(sentenceA, sentenceB) )
-        features.append( fuzz.token_set_ratio(sentenceA, sentenceB) )
-        features.append( fuzz.token_set_ratio(sentenceA, sentenceB) ) 
-        
-        """
-        ## word semantic features
-        
-        for f in self.qs.pairFeatures(sentenceA, sentenceB, stemming = 0):
-            features.append(f)
-        for f in self.qs.pairFeatures(sentenceA, sentenceB, stemming = 1):
-            features.append(f)    
-        """
+        features.append( SequenceMatcher(None, sentenceA, sentenceB).find_longest_match(0, len(sentenceA), 0, len(sentenceB))[2]  ) 
+
         return features
 
     def createFeatures(self, data):
         #create feature data frame
-        data['lenA'] = data.sentence_A.apply(lambda x: len(x))
-        data['lenB'] = data.sentence_B.apply(lambda x: len(x))
+        data['lenA'] = data.sentence_A.apply(lambda x: np.log(len(x)))
+        data['lenB'] = data.sentence_B.apply(lambda x: np.log(len(x)))
         data['diff_len'] = abs(data.lenA - data.lenB)
-        data['len_charA'] = data.sentence_A.apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
-        data['len_charB'] = data.sentence_B.apply(lambda x: len(''.join(set(str(x).replace(' ', '')))))
-        data['len_wordA'] = data.sentence_A.apply(lambda x: len(str(x).split()))
-        data['len_wordB'] = data.sentence_B.apply(lambda x: len(str(x).split()))
-        data['ttrA'] = data.sentence_A.apply(lambda x: fb.ttr(x))
-        data['ttrB'] = data.sentence_B.apply(lambda x: fb.ttr(x))
+        data['len_charA'] = data.sentence_A.apply(lambda x: np.log(len(''.join(set(str(x).replace(' ', ''))))))
+        data['len_charB'] = data.sentence_B.apply(lambda x: np.log(len(''.join(set(str(x).replace(' ', ''))))))
+        data['len_wordA'] = data.sentence_A.apply(lambda x: np.log(len(str(x).split())))
+        data['len_wordB'] = data.sentence_B.apply(lambda x: np.log(len(str(x).split())))
+        data['ttrA'] = data.sentence_A.apply(lambda x: np.log(fb.ttr(x)))
+        data['ttrB'] = data.sentence_B.apply(lambda x: np.log(fb.ttr(x)))
         
-        data['lcstr'] = data.apply(lambda row: fb.longestCommonsubstring(row['sentence_A'], row['sentence_B']), axis=1)
-        data['lcseq'] = data.apply(lambda row: fb.longestCommonSubseq(row['sentence_A'], row['sentence_B']), axis=1)
-        data['fwfreq'] = data.apply(lambda row: fb.funcWordFreq(row['sentence_A'], row['sentence_B']), axis=1)
+        data['lcstr'] = data.apply(lambda row: np.log(fb.longestCommonsubstring(row['sentence_A'], row['sentence_B'])), axis=1)
+        data['lcseq'] = data.apply(lambda row: np.log(fb.longestCommonSubseq(row['sentence_A'], row['sentence_B'])), axis=1)
+        #data['fwfreq'] = data.apply(lambda row: fb.funcWordFreq(row['sentence_A'], row['sentence_B']), axis=1)
         #data['gst'] = data.apply(lambda row: fb.gst(row['sentence_A'], row['sentence_B'], 2), axis=1)
         data['common_words'] = data.apply(lambda x: len(set(str(x['sentence_A']).lower().split()).intersection(set(str(x['sentence_B']).lower().split()))), axis=1)
-        data['fuzz_qratio'] = data.apply(lambda x: fuzz.QRatio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
-        data['fuzz_WRatio'] = data.apply(lambda x: fuzz.WRatio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
-        data['fuzz_partial_ratio'] = data.apply(lambda x: fuzz.partial_ratio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
-        data['fuzz_partial_token_set_ratio'] = data.apply(lambda x: fuzz.partial_token_set_ratio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
-        data['fuzz_partial_token_sort_ratio'] = data.apply(lambda x: fuzz.partial_token_sort_ratio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
-        data['fuzz_token_set_ratio'] = data.apply(lambda x: fuzz.token_set_ratio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
-        data['fuzz_token_sort_ratio'] = data.apply(lambda x: fuzz.token_sort_ratio(str(x['sentence_A']), str(x['sentence_B'])), axis=1)
+        data['fuzz_qratio'] = data.apply(lambda x: np.log(fuzz.QRatio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+        data['fuzz_WRatio'] = data.apply(lambda x: np.log(fuzz.WRatio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+        data['fuzz_partial_ratio'] = data.apply(lambda x: np.log(fuzz.partial_ratio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+        data['fuzz_partial_token_set_ratio'] = data.apply(lambda x: np.log(fuzz.partial_token_set_ratio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+        data['fuzz_partial_token_sort_ratio'] = data.apply(lambda x: np.log(fuzz.partial_token_sort_ratio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+        data['fuzz_token_set_ratio'] = data.apply(lambda x: np.log(fuzz.token_set_ratio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+        data['fuzz_token_sort_ratio'] = data.apply(lambda x: np.log(fuzz.token_sort_ratio(str(x['sentence_A']), str(x['sentence_B']))), axis=1)
+
+        ## word semantic features
+        data['exact'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 0)[0], axis=1)
+        data['cor'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 0)[1], axis=1)
+        data['syn'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 0)[2], axis=1)
+        data['keylen'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 0)[3], axis=1)
+        
+        data['exact1'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 1)[0], axis=1)
+        data['cor1'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 1)[1], axis=1)
+        data['syn1'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 1)[2], axis=1)
+        data['keylen1'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 1)[3], axis=1)
+
+
+        #data['pairfeat'] = data.apply(lambda x: self.qs.pairFeatures(x['sentence_A'], x['sentence_B'], stemming = 0), axis=1)
 
         data = data.drop(['pair_ID', 'sentence_A', 'sentence_B', 'entailment_judgment'], axis=1)
-        data.replace([np.inf, -np.inf], np.nan).dropna(how="all")
+        data.replace([np.inf, -np.inf], np.nan)
         data = data.fillna(0)
 
         return data
@@ -267,23 +254,50 @@ if __name__ == '__main__':
     data.head
     data = f.createFeatures(data)    
     
-    Y_train = data['relatedness_score']
-    X_train = data.drop(['relatedness_score'], axis=1)
 
     #Using statsmodels
-    import statsmodels.formula.api as smf
-
+    #train, test = train_test_split(data, test_size = 0.3)
+    print('split data')
     # create a fitted model in one line
-    lm = smf.ols(formula='Sales ~ TV', data=data).fit()
+    #lm = smf.ols(formula='relatedness_score ~ diff_len + len_charA + len_charB + len_wordA + ttrA + ttrB + lcstr + lcseq + common_words + fuzz_qratio + fuzz_WRatio + fuzz_partial_ratio + fuzz_partial_token_set_ratio + fuzz_partial_token_sort_ratio + fuzz_token_set_ratio + fuzz_token_sort_ratio', data=train ).fit()
+    lm = smf.ols(formula='relatedness_score ~ ttrA + ttrB + lcstr + lcseq + cor + keylen + keylen1 + exact1 + cor1 + syn1', data=data).fit()
+    #print('error at lm')
+    #predicted = lm.predict(test)
+    f = featureBased()
+    test = pd.read_csv("/home/ds/STS/data/SICK/SICK_test_annotated.txt", sep = '\t' , engine = 'python')
+    test = f.createFeatures(test)
+    predicted = lm.predict(test)
+    #print(predicted)
+    print('stats model lm pearson', pearsonr(predicted, test['relatedness_score']))
 
-    # print the coefficients
-    lm.params
-    lm.summary()
+    #RegressionResults(lm)
+    print(lm.summary())
 
+    
+    clf = svm.SVR()
+    data = data.drop(['relatedness_score'], axis=1)
+    clf.fit(data, data['relatedness_score']) 
+    test = pd.read_csv("/home/ds/STS/data/SICK/SICK_test_annotated.txt", sep = '\t' , engine = 'python')
+    test = f.createFeatures(test)
+    predicted = clf.predict(test)
+    print(predicted.shape)
+    print(test['relatedness_score'].shape)
+    print('svr pearson', pearsonr(predicted, test['relatedness_score']))
+
+    """
+    plt.plot(data["lcstr"], data["relatedness_score"], 'ro')
+    plt.plot(data["relatedness_score"], lm.fittedvalues, 'b')
+    plt.legend(['Data', 'Fitted model'])
+    plt.ylim(0, 100)
+    plt.xlim(-2, 120)
+    plt.xlabel('relatedness_score')
+    plt.ylabel('predictors')
+    plt.title('STS')
+    plt.show()
+
+    
     from sklearn import linear_model
     regr = linear_model.LinearRegression()
-
-    regr.fit(X_train, Y_train)
 
     f = featureBased()
     data = pd.read_csv("/home/ds/STS/data/SICK/SICK_trial.txt", sep = '\t' , engine = 'python')
@@ -372,3 +386,4 @@ if __name__ == '__main__':
     print('Fit a model X_train, and calculate MSE with Y_train:', np.mean((Y_train - regr.predict(X_train)) ** 2))
     print('Fit a model X_train, and calculate MSE with X_test, Y_test:', np.mean((Y_test - regr.predict(X_test)) ** 2))
     #print('score sick annotated', regr.score(X_test, pred_test))
+    """

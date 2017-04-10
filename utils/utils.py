@@ -1,15 +1,17 @@
 ##This core is published by Peter Norvig: norvig.com/spell-correct.html
 
-import re, collections
-
+import re, collections, sys
+sys.path.append('/home/ds/STS/data')
 
 class spellChecker:
     NWORDS = None
     alphabet = None
     
-    def __init__(self, corpus='../data/corpora/wordsEn.txt'):
+    def __init__(self, corpus='/home/ds/STS/data/corpora/wordsEn.txt'):
         print("spellChecker init: training the spellChecker")
-        self.NWORDS = self.train(self.words(file(corpus).read()))
+        with open(corpus) as file:
+            file = file.read()
+        self.NWORDS = self.train(self.words(file))
         self.alphabet = 'abcdefghijklmnopqrstuvwxyz'
         
         
