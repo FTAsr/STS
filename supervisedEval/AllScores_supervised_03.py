@@ -9,7 +9,8 @@ import sys
 #sys.path = ['../gensim', '../models', '../utils'] + sys.path
 sys.path = ['../models', '../utils'] + sys.path
 # Local imports
-import gensim, models, utils
+import gensim, utils
+import models as md
 
 
 
@@ -84,48 +85,54 @@ def train(models, trainSet, devSet, seed=1234):
     devY = np.asarray([x for i, x in enumerate(devY) if i not in index])
     devS = np.asarray([x for i, x in enumerate(devSet[2]) if i not in index])
     
-    print 'Compiling model...'
-    print(trainF.shape)
-    lrmodel = prepare_model(dim= trainF.shape[1])#, ninputs=trainF.shape[0])
-
-    print 'Training...'
-    bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, devS)
     
-    r = np.arange(1,6)
-    yhat = np.dot(bestlrmodel.predict_proba(devF, verbose=0), r)
-    pr = pearsonr(yhat, devS)[0]
-    sr = spearmanr(yhat, devS)[0]
-    se = mse(yhat, devS)
-    
-    print("\n************ SUMMARY LR***********")
-    print 'Train data size: ' + str(len(trainY))
-    print 'Dev data size: ' + str(len(devY))
-    print 'Dev Pearson: ' + str(pr)
-    print 'Dev Spearman: ' + str(sr)
-    print 'Dev MSE: ' + str(se)
-    print("********************************")
-
-    print 'Compiling svr model...'
-    bestsvrmodel = svm.SVR()
     print(trainF.shape)
-    print(trainY.shape)
-    bestsvrmodel.fit(trainF, trainSet[2]) 
 
-    #r = np.arange(1,6)
-    syhat = bestsvrmodel.predict(devF)
-    spr = pearsonr(syhat, devS)[0]
-    ssr = spearmanr(syhat, devS)[0]
-    sse = mse(syhat, devS)
+    if(isinstance(models[0], md.bow)):
+        print 'Compiling LR model...'
+        lrmodel = prepare_model(dim= trainF.shape[1])#, ninputs=trainF.shape[0])
 
-    print("\n************ SUMMARY SVR***********")
-    print 'Train data size: ' + str(len(trainY))
-    print 'Dev data size: ' + str(len(devY))
-    print 'Dev Pearson: ' + str(spr)
-    print 'Dev Spearman: ' + str(ssr)
-    print 'Dev MSE: ' + str(sse)
-    print("********************************")
+        print 'Training...'
+        bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, devS)
+        
+        r = np.arange(1,6)
+        yhat = np.dot(bestlrmodel.predict_proba(devF, verbose=0), r)
+        pr = pearsonr(yhat, devS)[0]
+        sr = spearmanr(yhat, devS)[0]
+        se = mse(yhat, devS)
+        
+        print("\n************ SUMMARY LR***********")
+        print 'Train data size: ' + str(len(trainY))
+        print 'Dev data size: ' + str(len(devY))
+        print 'Dev Pearson: ' + str(pr)
+        print 'Dev Spearman: ' + str(sr)
+        print 'Dev MSE: ' + str(se)
+        print("********************************")
 
-    return bestlrmodel  
+        return bestlrmodel
+
+    if(isinstance(models[0], md.featureBased)):
+        print 'Compiling svr model...'
+        bestsvrmodel = svm.SVR()
+        print(trainF.shape)
+        print(trainY.shape)
+        bestsvrmodel.fit(trainF, trainSet[2]) 
+
+        #r = np.arange(1,6)
+        syhat = bestsvrmodel.predict(devF)
+        spr = pearsonr(syhat, devS)[0]
+        ssr = spearmanr(syhat, devS)[0]
+        sse = mse(syhat, devS)
+
+        print("\n************ SUMMARY SVR***********")
+        print 'Train data size: ' + str(len(trainY))
+        print 'Dev data size: ' + str(len(devY))
+        print 'Dev Pearson: ' + str(spr)
+        print 'Dev Spearman: ' + str(ssr)
+        print 'Dev MSE: ' + str(sse)
+        print("********************************")
+
+        return bestsvrmodel  
 
 def test(models, classifier, testSet):
     ## Takes a linear regression classifier already trained for scoring similarity between two sentences based on the model
@@ -138,10 +145,17 @@ def test(models, classifier, testSet):
     testS = np.asarray([x for i, x in enumerate(testSet[2]) if i not in index])
     
     r = np.arange(1,6)
-    yhat = np.dot(classifier.predict_proba(testF, verbose=0), r)
-    pr = pearsonr(yhat, testS)[0]
-    sr = spearmanr(yhat, testS)[0]
-    se = mse(yhat, testS)
+    if type(classifier) == 'sklearn.svm.classes.SVR':
+        yhat = classifier.predict(testF)
+        pr = pearsonr(yhat, testS)[0]
+        sr = spearmanr(yhat, testS)[0]
+        se = mse(yhat, testS)
+
+    else:
+        yhat = np.dot(classifier.predict_proba(testF, verbose=0), r)
+        pr = pearsonr(yhat, testS)[0]
+        sr = spearmanr(yhat, testS)[0]
+        se = mse(yhat, testS)
     
     print("\n************ SUMMARY ***********")
     print 'Test data size: ' + str(len(testS))
@@ -298,11 +312,11 @@ if __name__ == '__main__':
     ensemble = list()
     
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
-    #model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
-    #ensemble.append(models.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
+    #model = md.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
+    #ensemble.append(md.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    ensemble.append(models.featureBased())
+    ensemble.append(md.featureBased())
     
     
     ## Load some data for training (standard SICK dataset)
