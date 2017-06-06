@@ -18,6 +18,7 @@ import math
 #from gensim.models.fastsent import FastSent
 from string import punctuation
 from sklearn.preprocessing import normalize
+import sklearn
 from gensim.models import Word2Vec
 from gensim import utils, matutils
 import numpy as np
@@ -145,7 +146,7 @@ def test(models, classifier, testSet):
     testS = np.asarray([x for i, x in enumerate(testSet[2]) if i not in index])
     
     r = np.arange(1,6)
-    if type(classifier) == 'sklearn.svm.classes.SVR':
+    if isinstance(classifier, sklearn.svm.classes.SVR):
         yhat = classifier.predict(testF)
         pr = pearsonr(yhat, testS)[0]
         sr = spearmanr(yhat, testS)[0]
