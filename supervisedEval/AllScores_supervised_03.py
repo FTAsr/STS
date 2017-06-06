@@ -150,7 +150,6 @@ def test(models, classifier, testSet):
 
     else:
         yhat = np.dot(classifier.predict_proba(testF, verbose=0), r)
-        syhat = classifier.predict(testF)
         pr = pearsonr(yhat, testS)[0]
         sr = spearmanr(yhat, testS)[0]
         se = mse(yhat, testS)
@@ -311,10 +310,10 @@ if __name__ == '__main__':
     
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
     #model = md.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
-    ensemble.append(md.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
+    #ensemble.append(md.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    #ensemble.append(md.featureBased())
+    ensemble.append(md.featureBased())
     
     
     ## Load some data for training (standard SICK dataset)
