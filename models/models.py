@@ -186,39 +186,39 @@ class featureBased(object):
         
        
         ## len features all, chars, word
-        features.append( len(sentenceA) )
-        features.append( len(sentenceB) )
-        features.append( len(''.join(set(sentenceA.replace(' ', '')))) ) 
-        features.append( len(''.join(set(sentenceB.replace(' ', '')))) ) 
-        features.append( len(sentenceA.split()) )
-        features.append( len(sentenceB.split()) ) 
+        features.append( np.log(len(sentenceA)) )
+        features.append( np.log(len(sentenceB)) )
+        features.append( np.log(abs(len(sentenceA) - len(sentenceB))+1) )
+        features.append( np.log(len(''.join(set(sentenceA.replace(' ', '')))) )) 
+        features.append( np.log(len(''.join(set(sentenceB.replace(' ', '')))) ))
+        features.append( np.log(len(sentenceA.split()) ))
+        features.append( np.log(len(sentenceB.split()) ))
         
-        features.append(fb.ttr(sentenceA))
-        features.append(fb.ttr(sentenceB))
-        features.append(fb.longestCommonsubstring(sentenceA, sentenceB))
-        features.append(fb.longestCommonSubseq(sentenceA, sentenceB))
+        #features.append(np.log(fb.ttr(sentenceA)))
+        #features.append(np.log(fb.ttr(sentenceB)))
+        features.append(np.log(fb.longestCommonsubstring(sentenceA, sentenceB)+1))
+        features.append(np.log(fb.longestCommonSubseq(sentenceA, sentenceB)+1))
 
         #features.append(fb.funcWordFreq(sentenceA, sentenceB))
         #features.append(fb.gst(sentenceA, sentenceB))
         
         ## substring and n-gram features 
-        
+        '''
         for length in (3,5,7):
             features.append(  len(set(zip(*[sentenceA[i:] for i in range(length)])).intersection(set(zip(*[sentenceB[i:] for i in range(length)]))))  )
         for length in range(1,5):
             features.append(  len(set(zip(*[sentenceA.split()[i:] for i in range(length)])).intersection(set(zip(*[sentenceB.split()[i:] for i in range(length)]))))  )
         features.append( SequenceMatcher(None, sentenceA, sentenceB).find_longest_match(0, len(sentenceA), 0, len(sentenceB))[2]  )
-        
+        '''
         ## token features
-        features.append( len(set(sentenceA.lower().split()).intersection(set(sentenceB.lower().split()))) ) 
-        features.append( fuzz.QRatio(sentenceA, sentenceB) ) 
-        features.append( fuzz.WRatio(sentenceA, sentenceB) ) 
-        features.append( fuzz.partial_ratio(sentenceA, sentenceB) ) 
-        features.append( fuzz.partial_token_set_ratio(sentenceA, sentenceB) ) 
-        features.append( fuzz.partial_token_sort_ratio(sentenceA, sentenceB) )
-        features.append( fuzz.token_set_ratio(sentenceA, sentenceB) )
-        features.append( fuzz.token_set_ratio(sentenceA, sentenceB) ) 
-       
+        features.append( len(set(sentenceA.lower().split()).intersection(set(sentenceB.lower().split()))) )      
+        features.append( np.log(fuzz.QRatio(sentenceA, sentenceB)) ) 
+        features.append( np.log(fuzz.WRatio(sentenceA, sentenceB)) ) 
+        features.append( np.log(fuzz.partial_ratio(sentenceA, sentenceB)) ) 
+        features.append( np.log(fuzz.partial_token_set_ratio(sentenceA, sentenceB)) ) 
+        features.append( np.log(fuzz.partial_token_sort_ratio(sentenceA, sentenceB)) )
+        features.append( np.log(fuzz.token_set_ratio(sentenceA, sentenceB)) )
+        features.append( np.log(fuzz.token_sort_ratio(sentenceA, sentenceB)) ) 
         
         ## word semantic features
         
