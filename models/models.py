@@ -1,9 +1,12 @@
 #!/Users/fa/anaconda/bin/python
 import sys
 sys.path = ['../utils'] + sys.path
+sys.path = ['../FeatureBased'] + sys.path
 import utils
 
+import FBSimilarityMeasures as fb
 import numpy as np
+import gensim
 from gensim.models import Word2Vec
 from sklearn.preprocessing import normalize
 from scipy import spatial
@@ -38,7 +41,7 @@ class bow(object):
     
     def __init__(self, modelFile):
         print("bow init: loading word2vec model")
-        self.w2vModel = Word2Vec.load_word2vec_format(modelFile, binary=True) 
+        self.w2vModel = gensim.models.KeyedVectors.load_word2vec_format(modelFile, binary=True) 
         return
     def encode(self, sentences, verbose=False, use_eos=True):
         sentenceVecs = list()
@@ -181,7 +184,7 @@ class featureBased(object):
     def pairFeatures(self, sentenceA, sentenceB):
         features = list()
         
-        '''''
+       
         ## len features all, chars, word
         features.append( len(sentenceA) )
         features.append( len(sentenceB) )
@@ -190,7 +193,16 @@ class featureBased(object):
         features.append( len(sentenceA.split()) )
         features.append( len(sentenceB.split()) ) 
         
+        features.append(fb.ttr(sentenceA))
+        features.append(fb.ttr(sentenceB))
+        features.append(fb.longestCommonsubstring(sentenceA, sentenceB))
+        features.append(fb.longestCommonSubseq(sentenceA, sentenceB))
+
+        #features.append(fb.funcWordFreq(sentenceA, sentenceB))
+        #features.append(fb.gst(sentenceA, sentenceB))
+        
         ## substring and n-gram features 
+        
         for length in (3,5,7):
             features.append(  len(set(zip(*[sentenceA[i:] for i in range(length)])).intersection(set(zip(*[sentenceB[i:] for i in range(length)]))))  )
         for length in range(1,5):
@@ -206,7 +218,7 @@ class featureBased(object):
         features.append( fuzz.partial_token_sort_ratio(sentenceA, sentenceB) )
         features.append( fuzz.token_set_ratio(sentenceA, sentenceB) )
         features.append( fuzz.token_set_ratio(sentenceA, sentenceB) ) 
-        '''
+       
         
         ## word semantic features
         
