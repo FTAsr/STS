@@ -89,6 +89,8 @@ def train(models, trainSet, devSet, seed=1234):
     
     print(trainF.shape)
 
+    fmodel = None
+
     if(isinstance(models[0], md.bow)):
         print 'Compiling LR model...'
         lrmodel = prepare_model(dim= trainF.shape[1])#, ninputs=trainF.shape[0])
@@ -101,16 +103,8 @@ def train(models, trainSet, devSet, seed=1234):
         pr = pearsonr(yhat, devS)[0]
         sr = spearmanr(yhat, devS)[0]
         se = mse(yhat, devS)
-        
-        print("\n************ SUMMARY LR***********")
-        print 'Train data size: ' + str(len(trainY))
-        print 'Dev data size: ' + str(len(devY))
-        print 'Dev Pearson: ' + str(pr)
-        print 'Dev Spearman: ' + str(sr)
-        print 'Dev MSE: ' + str(se)
-        print("********************************")
 
-        return bestlrmodel
+        fmodel = bestlrmodel
 
     if(isinstance(models[0], md.featureBased)):
         print 'Compiling svr model...'
@@ -120,20 +114,22 @@ def train(models, trainSet, devSet, seed=1234):
         bestsvrmodel.fit(trainF, trainSet[2]) 
 
         #r = np.arange(1,6)
-        syhat = bestsvrmodel.predict(devF)
-        spr = pearsonr(syhat, devS)[0]
-        ssr = spearmanr(syhat, devS)[0]
-        sse = mse(syhat, devS)
+        yhat = bestsvrmodel.predict(devF)
+        pr = pearsonr(yhat, devS)[0]
+        sr = spearmanr(yhat, devS)[0]
+        se = mse(yhat, devS)
 
-        print("\n************ SUMMARY SVR***********")
-        print 'Train data size: ' + str(len(trainY))
-        print 'Dev data size: ' + str(len(devY))
-        print 'Dev Pearson: ' + str(spr)
-        print 'Dev Spearman: ' + str(ssr)
-        print 'Dev MSE: ' + str(sse)
-        print("********************************")
+        fmodel = bestsvrmodel
 
-        return bestsvrmodel  
+    print("\n************ SUMMARY DEV***********")
+    print 'Train data size: ' + str(len(trainY))
+    print 'Dev data size: ' + str(len(devY))
+    print 'Dev Pearson: ' + str(pr)
+    print 'Dev Spearman: ' + str(sr)
+    print 'Dev MSE: ' + str(se)
+    print("********************************")
+
+    return fmodel  
 
 def test(models, classifier, testSet):
     ## Takes a linear regression classifier already trained for scoring similarity between two sentences based on the model
@@ -154,11 +150,12 @@ def test(models, classifier, testSet):
 
     else:
         yhat = np.dot(classifier.predict_proba(testF, verbose=0), r)
+        syhat = classifier.predict(testF)
         pr = pearsonr(yhat, testS)[0]
         sr = spearmanr(yhat, testS)[0]
         se = mse(yhat, testS)
     
-    print("\n************ SUMMARY ***********")
+    print("\n************ SUMMARY TEST***********")
     print 'Test data size: ' + str(len(testS))
     print 'Test Pearson: ' + str(pr)
     print 'Test Spearman: ' + str(sr)
@@ -314,10 +311,10 @@ if __name__ == '__main__':
     
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
     #model = md.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
-    #ensemble.append(md.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
+    ensemble.append(md.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    ensemble.append(md.featureBased())
+    #ensemble.append(md.featureBased())
     
     
     ## Load some data for training (standard SICK dataset)
