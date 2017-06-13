@@ -4,6 +4,24 @@ It can be downloaded from the following URL:
 
 https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit
 
+<h1> LR model performance on only bow feature vector(len 625) </h1> <br />
+
+************ SUMMARY DEV*********** <br />
+Train data size: 4500 <br />
+Dev data size: 500 <br />
+Dev Pearson: 0.807271361831 <br />
+Dev Spearman: 0.748895548098 <br />
+Dev MSE: 0.353066666652 <br />
+********************************
+
+************ SUMMARY TEST***********<br />
+Test data size: 4927 <br />
+Test Pearson: 0.809609373793 <br />
+Test Spearman: 0.722889575159 <br />
+Test MSE: 0.350920505276 <br />
+******************************** <br />
+
+
 <h1> SVR model performance on combined feature vector(len 625) </h1> <br />
 
 ************ SUMMARY DEV***********<br />
