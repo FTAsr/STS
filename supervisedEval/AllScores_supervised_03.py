@@ -7,10 +7,11 @@ Evaluation code for the SICK dataset (SemEval 2014 Task 1)
 
 import sys
 #sys.path = ['../gensim', '../models', '../utils'] + sys.path
-sys.path = ['../models', '../utils'] + sys.path
+sys.path = ['../models', '../utils', '../monolingual-word-aligner'] + sys.path
 # Local imports
 import gensim, utils
 import models as md
+import testAlign
 
 
 
@@ -42,7 +43,7 @@ import pickle
 
 ## This flag is used to mark cases (sentences or sentence pairs) that a model cannot successfully vectorize
 errorFlag = ["error flag"] 
-        
+       
 ## lower case and removes punctuation from the input text
 def process(s): return [i.lower().translate(None, punctuation).strip() for i in s]
 
@@ -55,6 +56,7 @@ def pairFeatures(models, a,b):
             vector = list()
             for index , model in enumerate(models):
                 part = model.pairFeatures(sentenceA,sentenceB)
+                #part.append(testAlign.scorer(sentenceA, sentenceB))
                 vector.extend(part)
                 #print sentenceA, " & " , sentenceB , " Model " , index  , ":" , part
             result.append(vector)
@@ -88,38 +90,18 @@ def train(models, trainSet, devSet, seed=1234):
     
     
     print(trainF.shape)
+    
+    print 'Compiling svr model...'
+    bestsvrmodel = svm.SVR()
+    print(trainF.shape)
+    print(trainY.shape)
+    bestsvrmodel.fit(trainF, trainSet[2]) 
 
-    fmodel = None
-
-    if(isinstance(models[0], md.bow)):
-        print 'Compiling LR model...'
-        lrmodel = prepare_model(dim= trainF.shape[1])#, ninputs=trainF.shape[0])
-
-        print 'Training...'
-        bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, devS)
-        
-        r = np.arange(1,6)
-        yhat = np.dot(bestlrmodel.predict_proba(devF, verbose=0), r)
-        pr = pearsonr(yhat, devS)[0]
-        sr = spearmanr(yhat, devS)[0]
-        se = mse(yhat, devS)
-
-        fmodel = bestlrmodel
-
-    if(isinstance(models[0], md.featureBased)):
-        print 'Compiling svr model...'
-        bestsvrmodel = svm.SVR()
-        print(trainF.shape)
-        print(trainY.shape)
-        bestsvrmodel.fit(trainF, trainSet[2]) 
-
-        #r = np.arange(1,6)
-        yhat = bestsvrmodel.predict(devF)
-        pr = pearsonr(yhat, devS)[0]
-        sr = spearmanr(yhat, devS)[0]
-        se = mse(yhat, devS)
-
-        fmodel = bestsvrmodel
+    #r = np.arange(1,6)
+    yhat = bestsvrmodel.predict(devF)
+    pr = pearsonr(yhat, devS)[0]
+    sr = spearmanr(yhat, devS)[0]
+    se = mse(yhat, devS)
 
     print("\n************ SUMMARY DEV***********")
     print 'Train data size: ' + str(len(trainY))
@@ -129,7 +111,7 @@ def train(models, trainSet, devSet, seed=1234):
     print 'Dev MSE: ' + str(se)
     print("********************************")
 
-    return fmodel  
+    return bestsvrmodel  
 
 def test(models, classifier, testSet):
     ## Takes a linear regression classifier already trained for scoring similarity between two sentences based on the model
@@ -141,18 +123,12 @@ def test(models, classifier, testSet):
     testF = np.asarray([x for i, x in enumerate(testF) if i not in index])
     testS = np.asarray([x for i, x in enumerate(testSet[2]) if i not in index])
     
-    r = np.arange(1,6)
-    if isinstance(classifier, sklearn.svm.classes.SVR):
-        yhat = classifier.predict(testF)
-        pr = pearsonr(yhat, testS)[0]
-        sr = spearmanr(yhat, testS)[0]
-        se = mse(yhat, testS)
+    #r = np.arange(1,6)
 
-    else:
-        yhat = np.dot(classifier.predict_proba(testF, verbose=0), r)
-        pr = pearsonr(yhat, testS)[0]
-        sr = spearmanr(yhat, testS)[0]
-        se = mse(yhat, testS)
+    yhat = classifier.predict(testF)
+    pr = pearsonr(yhat, testS)[0]
+    sr = spearmanr(yhat, testS)[0]
+    se = mse(yhat, testS)
     
     print("\n************ SUMMARY TEST***********")
     print 'Test data size: ' + str(len(testS))
