@@ -4,7 +4,7 @@ It can be downloaded from the following URL:
 
 https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit
 
-<h1> LR model performance on only bow feature vector(len 625) </h1> <br />
+<h1> LR model performance on only bow feature vector(len 600) </h1> <br />
 
 ************ SUMMARY DEV*********** <br />
 Train data size: 4500 <br />
