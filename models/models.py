@@ -2,6 +2,7 @@
 import sys
 sys.path = ['../utils'] + sys.path
 sys.path = ['../FeatureBased'] + sys.path
+sys.path = ['../monolingual-word-aligner'] + sys.path
 import utils
 
 import FBSimilarityMeasures as fb
@@ -16,9 +17,8 @@ from nltk.corpus import stopwords
 from nltk.corpus import wordnet as wn
 from nltk.stem.porter import *
 
-
-
-
+import aligner
+import re
 
 import pandas as pd
 from fuzzywuzzy import fuzz
@@ -124,7 +124,7 @@ class quickScore(object):
         keywords = re.findall('[a-z_]+', sentenceA.lower())
         keywords = [i for i in  keywords if i not in self.stoplist]
         if len(keywords) == 0:
-            return 0;
+            return 0,0,0,0;
         ##preprocess sentenceB
         exactsentenceB = re.findall('[a-z_]+', sentenceB.lower())
         exactsentenceB = [i for i in  exactsentenceB if i not in self.stoplist]
@@ -227,8 +227,37 @@ class featureBased(object):
         for f in self.qs.pairFeatures(sentenceA, sentenceB, stemming = 1):
             features.append(f)
         
-        
-        
+        return features
+
+
+class align(object):
+    """
+    Monolingual word Alignment:
+    Sulatn et al. 2014b 
+    """
+    bow = None
+    def __init__(self):
+        print("align init: loading monolingual-word alignment model")
+        self.bow = bow('/home/ds/Fat/STS/GoogleNews-vectors-negative300.bin')
+        return
+
+    def pairFeatures(self, sentenceA, sentenceB):
+
+        features = []
+        sentA = re.findall(r"[\w]+", sentenceA)
+        sentB = re.findall(r"[\w]+", sentenceB)
+
+        numerator = 0
+        denominator = len(sentA) + len(sentB)
+
+        alignedWords = aligner.align(sentA, sentB)
+
+        for sentenceId in range(0, len(alignedWords)):
+            numerator += len(alignedWords[sentenceId])
+
+        features.append(float(numerator) / float(denominator))
+        features.append(self.bow.sentence_similarity(sentenceA, sentenceB))
+            
         return features
         
 
