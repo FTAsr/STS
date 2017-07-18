@@ -4,12 +4,12 @@
 Evaluation code for the SICK dataset (SemEval 2014 Task 1)
 '''
 
-
 import sys
 #sys.path = ['../gensim', '../models', '../utils'] + sys.path
-sys.path = ['../models', '../utils'] + sys.path
+sys.path = ['../IUB/models', '../utils', '../embeddings'] + sys.path
 # Local imports
-import gensim, models, utils
+import gensim, utils
+from IUB.models import models
 
 
 
@@ -51,11 +51,14 @@ def pairFeatures(models, a,b):
             for index , model in enumerate(models):
                 part = model.pairFeatures(sentenceA,sentenceB)
                 vector.extend(part)
+                #print index, len(vector)
                 #print sentenceA, " & " , sentenceB , " Model " , index  , ":" , part
+
             result.append(vector)
         except:
-            print("ERROR: " + sentenceA + " & " +  sentenceB)
+            #print("ERROR: " + sentenceA + " & " +  sentenceB)
             result.append(errorFlag)
+    #print 'result', result
     return result
         
 def train(models, trainSet, devSet, seed=1234): 
@@ -65,7 +68,10 @@ def train(models, trainSet, devSet, seed=1234):
     trainSet[0], trainSet[1], trainSet[2] = shuffle(trainSet[0], trainSet[1], trainSet[2], random_state=seed) 
    
     print 'Computing feature vectors directly through model.pairFeatures() ...'
+    
     trainF = np.asarray( pairFeatures(models, process(trainSet[0]), process(trainSet[1])) )
+    print trainF.shape
+
     trainY = encode_labels(trainSet[2])
     
     index = [i for i, j in enumerate(trainF) if j ==  errorFlag]
@@ -83,13 +89,14 @@ def train(models, trainSet, devSet, seed=1234):
     
     print 'Compiling model...'
     print(trainF.shape)
+    
     lrmodel = prepare_model(dim= trainF.shape[1])#, ninputs=trainF.shape[0])
 
     print 'Training...'
     bestlrmodel = train_model(lrmodel, trainF, trainY, devF, devY, devS)
     
     r = np.arange(1,6)
-    yhat = np.dot(bestlrmodel.predict_proba(devF, verbose=2), r)
+    yhat = np.dot(bestlrmodel.predict_proba(devF, verbose=0), r)
     pr = pearsonr(yhat, devS)[0]
     sr = spearmanr(yhat, devS)[0]
     se = mse(yhat, devS)
@@ -103,6 +110,7 @@ def train(models, trainSet, devSet, seed=1234):
     print("********************************")
 
     return bestlrmodel
+
     
 
 
@@ -117,7 +125,7 @@ def test(models, classifier, testSet):
     testS = np.asarray([x for i, x in enumerate(testSet[2]) if i not in index])
     
     r = np.arange(1,6)
-    yhat = np.dot(classifier.predict_proba(testF, verbose=2), r)
+    yhat = np.dot(classifier.predict_proba(testF, verbose=0), r)
     pr = pearsonr(yhat, testS)[0]
     sr = spearmanr(yhat, testS)[0]
     se = mse(yhat, testS)
@@ -159,8 +167,8 @@ def train_model(lrmodel, X, Y, devX, devY, devscores):
     
     while not done:
         # Every 100 epochs, check Pearson on development set
-        lrmodel.fit(X, Y, verbose=2, shuffle=False, validation_data=(devX, devY))
-        yhat = np.dot(lrmodel.predict_proba(devX, verbose=2), r)
+        lrmodel.fit(X, Y, verbose=0, shuffle=False, validation_data=(devX, devY))
+        yhat = np.dot(lrmodel.predict_proba(devX, verbose=0), r)
         score = pearsonr(yhat, devscores)[0]
         if score > best:
             print 'Dev Pearson: = ' + str(score)
@@ -172,7 +180,7 @@ def train_model(lrmodel, X, Y, devX, devY, devscores):
             done = True
     ## FA: changed here:
     #yhat = np.dot(bestlrmodel.predict_proba(devX, verbose=2), r) 
-    yhat = np.dot(lrmodel.predict_proba(devX, verbose=2), r) 
+    yhat = np.dot(lrmodel.predict_proba(devX, verbose=0), r) 
     score = pearsonr(yhat, devscores)[0]
     print 'Dev Pearson: ' + str(score)
     ## FA: changed here:
@@ -225,7 +233,40 @@ def load_data_SICK(loc='../data/SICK/'):
     testS = [float(s) for s in testS[1:]]
 
     return [trainA[1:], trainB[1:], trainS], [devA[1:], devB[1:], devS], [testA[1:], testB[1:], testS]
-    
+
+def load_data_STS(loc='../data/SICK/'):
+    """
+    Load the SICK semantic-relatedness dataset
+    """
+    trainA, trainB, devA, devB, testA, testB = [],[],[],[],[],[]
+    trainS, devS, testS = [],[],[]
+
+    with open(loc + 'SICK_train.txt', 'rb') as f:
+        for line in f:
+            text = line.strip().split('\t')
+            trainA.append(text[1])
+            trainB.append(text[2])
+            trainS.append(text[3])
+    with open(loc + 'SICK_trial.txt', 'rb') as f:
+        for line in f:
+            text = line.strip().split('\t')
+            devA.append(text[1])
+            devB.append(text[2])
+            devS.append(text[3])
+    with open(loc + 'tf2017.csv', 'rb') as f:
+        for line in f:
+            text = line.strip().split('\t')
+            testA.append(text[1])
+            testB.append(text[2])
+            testS.append(text[3])
+
+    trainS = [float(s) for s in trainS[1:]]
+    #trainS = pd.read_csv(loc + 'bigtrain.csv', sep='\t').loc[:,'relatedness_score'].tolist()
+    devS = [float(s) for s in devS[1:]]
+    testS = [float(s) for s in testS[1:]]
+    #testS = pd.read_csv(loc + 'tf2017.csv', sep='\t').loc[:,'relatedness_score'].tolist()
+
+    return [trainA[1:], trainB[1:], trainS], [devA[1:], devB[1:], devS], [testA[1:], testB[1:], testS]    
  
 def load_data(dataFile):
     """
@@ -271,27 +312,88 @@ def load_data(dataFile):
     print len(trainA), len(devA), len(testA)
     return [trainA, trainB, trainS], [devA, devB, devS], [testA, testB, testS]
 
+def load_data_nosplit(dataFile):
+    """
+    Load the local short answer dataset
+    """
+    
+    allA, allB, allS = [],[],[]
 
+    with open(dataFile, 'rb') as f:
+        for line in f:
+            text = line.strip().split('\t')
+            allA.append(text[1])
+            allB.append(text[2])
+            allS.append(text[3])
+            #print("Reading data" + str(text))
+    allA = allA[1:]
+    allB = allB[1:]
+    allS = [float(s) for s in allS[1:]]
+    allS = [(x * 4 + 1) for x in allS] ## scale [0,1] values to [1,5] like in SICK data
+    
+    ## remove useless datapoints
+    index = [i for i, j in enumerate(allB) if (j == "empty" or ("I don't" in j))]
+    print("No. of empty and 'i don't know' cases': " , len(index))
+    index = [i for i, j in enumerate(allB) if (j == "empty" or ("I don't" in j) or ("\n" in j) or ('\"' in j) )]
+    print("No. of empty and 'i don't know' , 'i don't' and multi-line (suspicious) cases': " , len(index))
+    allA = np.asarray([x for i, x in enumerate(allA) if i not in index])
+    allB = np.asarray([x for i, x in enumerate(allB) if i not in index])
+    allS = np.asarray([x for i, x in enumerate(allS) if i not in index])
+    print("Average length of sentenceA ", sum(map(len, allA))/float(len(allA)))
+    print("Average length of sentenceB ", sum(map(len, allB))/float(len(allB)))
+    #lengths = pd.len(allB) 
+    
+    ## shuffle the data
+    allS, allA, allB = shuffle(allS, allA, allB, random_state=12345)
+   
+    ## Everything as test data
+    trainA, devA, testA = [], [], allA[:]
+    trainB, devB, testB = [], [], allB[:]
+    trainS, devS, testS = [], [], allS[:]
+
+    print len(allA)
+    print len(trainA)+len(devA)+len(testA)
+    print len(trainA), len(devA), len(testA)
+    return [trainA, trainB, trainS], [devA, devB, devS], [testA, testB, testS]
 
 if __name__ == '__main__':
     
     ensemble = list()
     
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
-    #model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
-    ensemble.append(models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_300_6/vectorsW.bin"))
+    #model = modeldef.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
+    bowm = models.bow("../embeddings/GoogleNews-vectors-negative300.bin")
+    #ensemble.append(bowm)
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    ensemble.append(models.featureBased())
+    #ensemble.append(modeldef.featureBased())
     
     
     ## Load some data for training (standard SICK dataset)
-    trainSet, devSet, testSet = load_data_SICK('../data/SICK/')
+    trainSet, devSet, testSet = load_data_STS('../data/SICK/')
+
+    #trainSet, devSet, testSet = load_data('../data/SICK/CollegeOldData_HighAgreementPartialScoring.txt')
 
     ## Train a classifier using train and development subsets
-    classifier = train(ensemble, trainSet, devSet)
+    bowclassifier = train([bowm], trainSet, devSet)
+    fbm = models.featureBased()
+    fbclassifier = train([fbm], trainSet, devSet)
+    bothclassifier = train([bowm, fbm], trainSet, devSet)
     
+    #classifier = pickle.load(open('fb.file', 'rb'))
+    #filehandler = open('fbnew.file', 'w') 
+    #pickle.dump(classifier, filehandler)
+
+
     ## Test the classifier on test data of the same type (coming from SICK)
+    print 'testing bow'
+    test([bowm], bowclassifier, testSet)
+    print 'testing fb'
+    test([fbm], fbclassifier, testSet)
+    print 'testing bow+fb'
+    test([bowm, fbm], bothclassifier, testSet)
+
+    '''
     test(ensemble, classifier, testSet).to_csv('../data/local/SICK-trained_SICK-test.csv')
 
     ## FileName to save the trained classifier for later use
@@ -316,10 +418,10 @@ if __name__ == '__main__':
     
     x, y, testSet = load_data('../data/local/IES-2Exp2A_AVG.txt')
     test(ensemble, newClassifier,testSet).to_csv('../data/local/SICK-trained_Exp2A-test.csv')
+
     
     
-    
-    
+    '''
     ## ************ Results you should see for the featurBased model ********************
     
     '''
