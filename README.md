@@ -56,7 +56,26 @@ In order to use the implemented supervised evaluation framework, you need to lea
     
     
     test(ensemble, newClassifier, testSet)
-    
+
+## Embedding files
+Please download the pretrained Word2Vec and Glove embedding files and put them in embeddings directory.
+
+Word2Vec pre-trained Google News corpus (3 billion running words) word vector model (3 million 300-dimension English word vectors).It can be downloaded from the following URL:
+https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit
+
+GloVe is an unsupervised learning algorithm for obtaining vector representations for words. Training is performed on aggregated global word-word co-occurrence statistics from a corpus, and the resulting representations showcase interesting linear substructures of the word vector space.
+
+Common Crawl (840B tokens, 2.2M vocab, cased, 300d vectors, 2.03 GB download):
+Glove embeddings: http://nlp.stanford.edu/data/glove.840B.300d.zip
+
+## Mode of operations
+We have provided two modes of operation to run our system:
+1. Interacive mode: You can provide the gold answer, student answer, grading scale, threshold for feedabck etc at the command line or console.
+2. Batch Mode: This mode is suitable for calculating similarity scores for large input files.
+
+## Configurable parameters
+We have provided a properties.py file, which contains all the configurable parameters for the system e.g. setting the final output similarity as Multiclass labels instead of real valued similarity scores.
+
 ## Data format
 Data files need be tab-delimited text files (.txt); sample data can be found in data/SICK directory. The first line of an input data file consists of the column names (goldAnswer, teacherAnswer, similarityScore) and other lines each demonstrates one data point. If you want to read train, development and test data from separate files (SICK format), you can put them in one category and call the function load_data_SICK(). Otherwise, train/dev/test data can be randomly chosen from a single input file by load_data() with a pre-specified split function.
  
