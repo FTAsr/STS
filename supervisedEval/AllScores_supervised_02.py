@@ -9,7 +9,7 @@ import sys
 sys.path = ['../IUB/models', '../utils', '../embeddings'] + sys.path
 # Local imports
 import gensim, utils
-from IUB.models import models
+import models as md
 
 
 
@@ -130,18 +130,19 @@ def test(models, classifier, testSet):
     sr = spearmanr(yhat, testS)[0]
     se = mse(yhat, testS)
     
+
     print("\n************ SUMMARY ***********")
     print 'Test data size: ' + str(len(testS))
     print 'Test Pearson: ' + str(pr)
     print 'Test Spearman: ' + str(sr)
     print 'Test MSE: ' + str(se)
     print("********************************")
-    
+
     sentenceA = np.asarray([x for i, x in enumerate(process(testSet[0])) if i not in index])
     sentenceB = np.asarray([x for i, x in enumerate(process(testSet[1])) if i not in index])
     a =  [ (sentenceA[i], sentenceB[i], testS[i], yhat[i], np.abs(testS[i] - yhat[i]) ) for i,s in enumerate(sentenceA) ]
     b = pd.DataFrame(a, columns = ['target','response','score','prediction','error'])
-    print(b.sort(['error', 'score']))
+    #print(b.sort(['error', 'score']))
     return b
     
 
@@ -241,7 +242,7 @@ def load_data_STS(loc='../data/SICK/'):
     trainA, trainB, devA, devB, testA, testB = [],[],[],[],[],[]
     trainS, devS, testS = [],[],[]
 
-    with open(loc + 'SICK_train.txt', 'rb') as f:
+    with open(loc + 'bigtrain.csv', 'rb') as f:
         for line in f:
             text = line.strip().split('\t')
             trainA.append(text[1])
@@ -260,11 +261,9 @@ def load_data_STS(loc='../data/SICK/'):
             testB.append(text[2])
             testS.append(text[3])
 
-    trainS = [float(s) for s in trainS[1:]]
-    #trainS = pd.read_csv(loc + 'bigtrain.csv', sep='\t').loc[:,'relatedness_score'].tolist()
+    trainS = pd.read_csv(loc + 'bigtrain.csv', sep='\t').loc[:,'relatedness_score'].tolist()
     devS = [float(s) for s in devS[1:]]
-    testS = [float(s) for s in testS[1:]]
-    #testS = pd.read_csv(loc + 'tf2017.csv', sep='\t').loc[:,'relatedness_score'].tolist()
+    testS = pd.read_csv(loc + 'tf2017.csv', sep='\t').loc[:,'relatedness_score'].tolist()
 
     return [trainA[1:], trainB[1:], trainS], [devA[1:], devB[1:], devS], [testA[1:], testB[1:], testS]    
  
@@ -361,12 +360,12 @@ if __name__ == '__main__':
     ensemble = list()
     
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
-    #model = modeldef.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
-    bowm = models.bow("../embeddings/GoogleNews-vectors-negative300.bin")
+    #model = md.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
+    bowm = md.bow("../embeddings/GoogleNews-vectors-negative300.bin")
     #ensemble.append(bowm)
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    #ensemble.append(modeldef.featureBased())
+    #ensemble.append(md.featureBased())
     
     
     ## Load some data for training (standard SICK dataset)
@@ -375,21 +374,22 @@ if __name__ == '__main__':
     #trainSet, devSet, testSet = load_data('../data/SICK/CollegeOldData_HighAgreementPartialScoring.txt')
 
     ## Train a classifier using train and development subsets
-    bowclassifier = train([bowm], trainSet, devSet)
-    fbm = models.featureBased()
-    fbclassifier = train([fbm], trainSet, devSet)
+    #bowclassifier = train([bowm], trainSet, devSet)
+    fbm = md.featureBased()
+    #fbclassifier = train([fbm], trainSet, devSet)
     bothclassifier = train([bowm, fbm], trainSet, devSet)
     
     #classifier = pickle.load(open('fb.file', 'rb'))
     #filehandler = open('fbnew.file', 'w') 
     #pickle.dump(classifier, filehandler)
-
+    filehandler = open('pretrained/bow+fb+sts.file', 'w') 
+    pickle.dump(bothclassifier, filehandler)
 
     ## Test the classifier on test data of the same type (coming from SICK)
-    print 'testing bow'
-    test([bowm], bowclassifier, testSet)
-    print 'testing fb'
-    test([fbm], fbclassifier, testSet)
+    #print 'testing bow'
+    #test([bowm], bowclassifier, testSet)
+    #print 'testing fb'
+    #test([fbm], fbclassifier, testSet)
     print 'testing bow+fb'
     test([bowm, fbm], bothclassifier, testSet)
 
