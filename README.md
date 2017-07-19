@@ -68,6 +68,9 @@ GloVe is an unsupervised learning algorithm for obtaining vector representations
 Common Crawl (840B tokens, 2.2M vocab, cased, 300d vectors, 2.03 GB download):
 Glove embeddings: http://nlp.stanford.edu/data/glove.840B.300d.zip
 
+Pretrained feedback model has to be put inside feedback directoy.
+curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.allnli.pickle
+
 ## Mode of operations
 We have provided two modes of operation to run our system:
 1. Interacive mode: You can provide the gold answer, student answer, grading scale, threshold for feedabck etc at the command line or console.
