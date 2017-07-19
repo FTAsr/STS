@@ -78,10 +78,10 @@ We have provided two modes of operation to run our system:
 2. Batch Mode: This mode is suitable for calculating similarity scores for large input files.
 
 ## Configurable parameters
-We have provided a properties.py file, which contains all the configurable parameters for the system e.g. setting the final output similarity as Multiclass labels instead of real valued similarity scores.
+We have provided a properties.py file, which contains all the configurable parameters for the system e.g. setting the final output similarity as Multiclass labels instead of real valued similarity scores. You can always switch between Interactive and Batch mode by setting the flag in properties file.
 
 ## Data format
-Data files need be tab-delimited text files (.txt); sample data can be found in data/SICK directory. The first line of an input data file consists of the column names (goldAnswer, teacherAnswer, similarityScore) and other lines each demonstrates one data point. If you want to read train, development and test data from separate files (SICK format), you can put them in one category and call the function load_data_SICK(). Otherwise, train/dev/test data can be randomly chosen from a single input file by load_data() with a pre-specified split function.
+Data files need be tab-delimited text files (.txt); sample data can be found in data/SICK directory. The first line of an input data file consists of the column names (goldAnswer, teacherAnswer, similarityScore) and other lines each demonstrates one data point. If you want to read train, development and test data from separate files (SICK format), you can put them in one category and call the function load_data_SICK(). Otherwise, train/dev/test data can be randomly chosen from a single input file by load_data() with a pre-specified split function. If you have to use an entire file as test data you can use load_data_nosplit() method.
  
 
     
