@@ -73,7 +73,8 @@ curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infer
 
 ## Mode of operations
 We have provided two modes of operation to run our system:
-1. Interacive mode: You can provide the gold answer, student answer, grading scale, threshold for feedabck etc at the command line or console.
+1. Interacive mode: You can provide the gold answer, student answer, grading scale, threshold for feedabck etc at the command line or console. You can also view visualization of important keywords in gold answer with their resepective percentages of importance. Once you close the visualization, important keywords missed in student answer are displayed at the console.
+
 2. Batch Mode: This mode is suitable for calculating similarity scores for large input files.
 
 ## Configurable parameters
