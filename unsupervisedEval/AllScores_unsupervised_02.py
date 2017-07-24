@@ -17,11 +17,11 @@ If using anaconda, switch to python2 environment
 """
 import sys
 #sys.path.append('./gensim') #Essential step
-sys.path = ['../feedback', '../gensim', '../IUB/models', '../utils'] + sys.path
+sys.path = ['../feedbackmodels', '../gensim', '../featuremodels', '../utils'] + sys.path
 # Local imports
 import models
 import gensim 
-from IUB.models import models as md
+from featuremodels import models as md
 import utils
 
 from gensim.models.fastsent import FastSent
@@ -260,7 +260,7 @@ if __name__ == '__main__':
     #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt')
 
     model = md.feedback()
-    trainSet, scoretSet = load_data('../data/SICK/CollegeOldData_HighAgreementPartialScoring.txt')
+    trainSet, scoretSet = load_data('../data/local/CollegeOldData_HighAgreementPartialScoring.txt')
     sentences = []
     sentences.extend(trainSet[0])
     sentences.extend(trainSet[1])
@@ -270,9 +270,9 @@ if __name__ == '__main__':
     model.feedback_model.build_vocab(sentences)
 
     #evaluate(model, '../data/SICK/')
-    evaluate(model,'../data/SICK/CollegeOldData_HighAgreementPartialScoring.txt')
-    evaluate(model,'../data/SICK/IES-2Exp1A_AVG.txt')
-    evaluate(model,'../data/SICK/IES-2Exp2A_AVG.txt')
+    evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt')
+    evaluate(model,'../data/local/IES-2Exp1A_AVG.txt')
+    evaluate(model,'../data/local/IES-2Exp2A_AVG.txt')
     
     
     ## ensemble test:
