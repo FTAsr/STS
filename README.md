@@ -3,17 +3,17 @@
 This library makes it possible for several programmers to work on the same code. The interface of the short answer scoring systems is user friendly and a quick start to train and test a model would be to look at the main function implemented in file supervisedEval/main.py. However, to get a better understanding of the implemented models please study the following information.
 
 ## Package requirements
-I would recommend to use conda to manage package dependencies and environment management. (https://conda.io/docs/using/envs.html)
-python                    2.7.x
-scikit-learn              0.18.2
-scipy                     0.19.1
-pandas                    0.20.2
-numpy                     1.13.1
-nltk                      3.2.2
-keras                     2.0.2
-tensorflow                1.1.0
-pytorch (http://pytorch.org/)
-pickle, fuzzywuzzy, tqdm
+I would recommend to use conda to manage package dependencies and environment management. <br /> (https://conda.io/docs/using/envs.html) <br /> 
+python                    2.7.x <br /> 
+scikit-learn              0.18.2 <br /> 
+scipy                     0.19.1 <br /> 
+pandas                    0.20.2 <br /> 
+numpy                     1.13.1 <br /> 
+nltk                      3.2.2 <br /> 
+keras                     2.0.2 <br /> 
+tensorflow                1.1.0 <br /> 
+pytorch (http://pytorch.org/) <br /> 
+pickle, fuzzywuzzy, tqdm <br /> 
 
 ## Models to choose from
 - bow or the bag-of-words model is implemented based on distributional semantics. The current implementation can read word representations from any pre-trained vector space (such as word2vec or GloVe) and compute a sentence vector through averaging over all present words within a sentence. In order to score the similarity between two sentences, in unsupervised manner, one could simply compute the cosine similarity between the two bow vectors (see class bow:sentence_similarity() in models/models.py). However, in supervised framework, a machine-learning component (classifier) can be trained on features obtained from the two sentence vectors. This will allow the classifier to find the important hidden components of the sentences' that have some contribution in measuring the sentence similarity. This has been implemented in supervisedEval/main.py.
