@@ -5,13 +5,10 @@ Evaluation code for the SICK dataset (SemEval 2014 Task 1)
 '''
 
 import sys
-#sys.path = ['../gensim', '../models', '../utils'] + sys.path
-sys.path = ['../IUB/models', '../utils', '../embeddings'] + sys.path
+sys.path = ['../', '../featuremodels', '../utils', '../pretrained/embeddings'] + sys.path
 # Local imports
 import gensim, utils
-import models as md
-
-
+from featuremodels import models as md
 
 import math
 #from gensim.models.fastsent import FastSent
@@ -140,7 +137,8 @@ def test(models, classifier, testSet):
 
     sentenceA = np.asarray([x for i, x in enumerate(process(testSet[0])) if i not in index])
     sentenceB = np.asarray([x for i, x in enumerate(process(testSet[1])) if i not in index])
-    a =  [ (sentenceA[i], sentenceB[i], testS[i], yhat[i], np.abs(testS[i] - yhat[i]) ) for i,s in enumerate(sentenceA) ]
+    #a =  [ (sentenceA[i], sentenceB[i], testS[i], yhat[i], np.abs(testS[i] - yhat[i]) ) for i,s in enumerate(sentenceA) ]
+    a =  [ (sentenceA[i], sentenceB[i], testS[i], yhat[i], testS[i] - yhat[i]) for i,s in enumerate(sentenceA) ]
     b = pd.DataFrame(a, columns = ['target','response','score','prediction','error'])
     #print(b.sort(['error', 'score']))
     return b
@@ -242,7 +240,7 @@ def load_data_STS(loc='../data/SICK/'):
     trainA, trainB, devA, devB, testA, testB = [],[],[],[],[],[]
     trainS, devS, testS = [],[],[]
 
-    with open(loc + 'bigtrain.csv', 'rb') as f:
+    with open(loc + 'ftrain.csv', 'rb') as f:
         for line in f:
             text = line.strip().split('\t')
             trainA.append(text[1])
@@ -261,7 +259,7 @@ def load_data_STS(loc='../data/SICK/'):
             testB.append(text[2])
             testS.append(text[3])
 
-    trainS = pd.read_csv(loc + 'bigtrain.csv', sep='\t').loc[:,'relatedness_score'].tolist()
+    trainS = pd.read_csv(loc + 'ftrain.csv', sep='\t').loc[:,'relatedness_score'].tolist()
     devS = [float(s) for s in devS[1:]]
     testS = pd.read_csv(loc + 'tf2017.csv', sep='\t').loc[:,'relatedness_score'].tolist()
 
@@ -360,38 +358,44 @@ if __name__ == '__main__':
     ensemble = list()
     
     ## Bow model requires the path to a pre-trained word2vect or GloVe vector space in binary format
-    #model = md.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
-    bowm = md.bow("../embeddings/GoogleNews-vectors-negative300.bin")
-    #ensemble.append(bowm)
-    
+    #bowm = md.bow("../pretrained/embeddings/GoogleNews-vectors-negative300.bin")
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    #ensemble.append(md.featureBased())
-    
+    fbm = md.featureBased()
+    ## Feedback model is BiLSTM max pooling deep learning model.
+    feedm = md.feedback()
+
+    ## Add specific models to ensemble
+    #ensemble.append(bowm)  
+    ensemble.append(feedm)    
+    ensemble.append(fbm)    
     
     ## Load some data for training (standard SICK dataset)
-    trainSet, devSet, testSet = load_data_STS('../data/SICK/')
+    #trainSet, devSet, testSet = load_data_SICK('../data/SICK/')
+    trainSet, devSet, testSet = load_data_nosplit('../data/local/CollegeOldData_HighAgreementPartialScoring.txt')
 
-    #trainSet, devSet, testSet = load_data('../data/SICK/CollegeOldData_HighAgreementPartialScoring.txt')
+    # Uncomment till the build_vocab method if using feedback model 
+    sentences = []
+    sentences.extend(trainSet[0])
+    sentences.extend(trainSet[1])
+    sentences.extend(devSet[0])
+    sentences.extend(devSet[1])
+    sentences.extend(testSet[0])
+    sentences.extend(testSet[1])
 
+    sentences = [sent.decode('utf8') for sent in sentences]
+    print 'length:', len(sentences)
+    feedm.feedback_model.build_vocab(sentences)
+
+    '''
     ## Train a classifier using train and development subsets
-    #bowclassifier = train([bowm], trainSet, devSet)
-    fbm = md.featureBased()
-    #fbclassifier = train([fbm], trainSet, devSet)
-    bothclassifier = train([bowm, fbm], trainSet, devSet)
-    
-    #classifier = pickle.load(open('fb.file', 'rb'))
-    #filehandler = open('fbnew.file', 'w') 
-    #pickle.dump(classifier, filehandler)
-    filehandler = open('pretrained/bow+fb+sts.file', 'w') 
-    pickle.dump(bothclassifier, filehandler)
-
+    classifier = train(ensemble, trainSet, devSet)
+    filehandler = open('pretrained/bow+sts1214.file', 'w') 
+    pickle.dump(classifier, filehandler)
+    '''
+    classifier = pickle.load(open('../pretrained/classifiers/feed+fb+sts1214.file', 'rb'))
+  
     ## Test the classifier on test data of the same type (coming from SICK)
-    #print 'testing bow'
-    #test([bowm], bowclassifier, testSet)
-    #print 'testing fb'
-    #test([fbm], fbclassifier, testSet)
-    print 'testing bow+fb'
-    test([bowm, fbm], bothclassifier, testSet)
+    test(ensemble, classifier, testSet)
 
     '''
     test(ensemble, classifier, testSet).to_csv('../data/local/SICK-trained_SICK-test.csv')
@@ -405,9 +409,7 @@ if __name__ == '__main__':
     
     ## Test the saved and loaded classifier on the testSet again (to make sure the classifier didn't mess up by saving on disk)
     test(ensemble, newClassifier, testSet)
-    
-    
-    
+        
     ## Now we can also test the classifier on a new type of data to see how it generalizes
     
     x, y, testSet = load_data('../data/local/CollegeOldData_HighAgreementPartialScoring.txt')
@@ -419,213 +421,4 @@ if __name__ == '__main__':
     x, y, testSet = load_data('../data/local/IES-2Exp2A_AVG.txt')
     test(ensemble, newClassifier,testSet).to_csv('../data/local/SICK-trained_Exp2A-test.csv')
 
-    
-    
     '''
-    ## ************ Results you should see for the featurBased model ********************
-    
-    '''
-    ## On SICK
-    ************ SUMMARY ***********
-    Train data size: 4500
-    Dev data size: 500
-    Dev Pearson: 0.68317444312
-    Dev Spearman: 0.603564634109
-    Dev MSE: 0.54053293042
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 4927
-    Test Pearson: 0.67703114953
-    Test Spearman: 0.572650244024
-    Test MSE: 0.552484086087
-    ********************************
-    
-    ## On College
-    ************ SUMMARY ***********
-    Test data size: 2377
-    Test Pearson: 0.681083130923
-    Test Spearman: 0.73253706934
-    Test MSE: 1.69282707345
-    ********************************
-    
-    ## On School
-    ************ SUMMARY ***********
-    Test data size: 1035
-    Test Pearson: 0.83391286139
-    Test Spearman: 0.831616548407
-    Test MSE: 1.88451794659
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 831
-    Test Pearson: 0.940048293417
-    Test Spearman: 0.912269550125
-    Test MSE: 2.13254902436
-    ********************************
-    '''
-    
-    ## ************ Results you should see for the bow model with dim=100 ********************
-    
-    '''
-    ## On SICK
-    ************ SUMMARY ***********
-    Train data size: 4500
-    Dev data size: 500
-    Dev Pearson: 0.727533547056
-    Dev Spearman: 0.677997133494
-    Dev MSE: 0.477910879944
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 4927
-    Test Pearson: 0.746349505723
-    Test Spearman: 0.668270733008
-    Test MSE: 0.451736894059
-    ********************************
-    
-    ## On College
-    ************ SUMMARY ***********
-    Test data size: 2376
-    Test Pearson: 0.574411300623
-    Test Spearman: 0.611559028791
-    Test MSE: 1.82576252723
-    ********************************
-    
-    ## On School
-    ************ SUMMARY ***********
-    Test data size: 926
-    Test Pearson: 0.786136186643
-    Test Spearman: 0.774748380124
-    Test MSE: 1.40489704198
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 799
-    Test Pearson: 0.836778366975
-    Test Spearman: 0.768867968766
-    Test MSE: 1.26408862889
-    ********************************
-    '''
-    
-    ## ************ Results you should see for the bow model with dim=300 ********************
-    
-    '''
-    ## On SICK
-    ************ SUMMARY ***********
-    Train data size: 4500
-    Dev data size: 500
-    Dev Pearson: 0.772813304907
-    Dev Spearman: 0.71773528102
-    Dev MSE: 0.407975879066
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 4927
-    Test Pearson: 0.786754475063
-    Test Spearman: 0.709340431472
-    Test MSE: 0.387911887528
-    ********************************
-    
-    ## On College
-    ************ SUMMARY ***********
-    Test data size: 2372
-    Test Pearson: 0.582303402137
-    Test Spearman: 0.613536855185
-    Test MSE: 1.90456106447
-    ********************************
-    
-    ## On School
-    ************ SUMMARY ***********
-    Test data size: 891
-    Test Pearson: 0.805684602555
-    Test Spearman: 0.787189288495
-    Test MSE: 1.32262017049
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 786
-    Test Pearson: 0.920134997428
-    Test Spearman: 0.79645383768
-    Test MSE: 0.581767156877
-    ********************************
-    '''
-    
-    
-    ## ************ Results you should see for the bow model with dim=100 + featureBased ********************
-    
-    ''''
-    ## On SICK
-    ************ SUMMARY ***********
-    Train data size: 4500
-    Dev data size: 500
-    Dev Pearson: 0.764599637721
-    Dev Spearman: 0.707902834244
-    Dev MSE: 0.419814975758
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 4927
-    Test Pearson: 0.783003891986
-    Test Spearman: 0.693562436578
-    Test MSE: 0.394127547639
-    ********************************
-    
-    ## On College
-    ************ SUMMARY ***********
-    Test data size: 2376
-    Test Pearson: 0.599892044715
-    Test Spearman: 0.626315623556
-    Test MSE: 1.81572431625
-    ********************************
-    
-    ## On School
-    ************ SUMMARY ***********
-    Test data size: 926
-    Test Pearson: 0.775438334137
-    Test Spearman: 0.785787532287
-    Test MSE: 1.50447449955
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 799
-    Test Pearson: 0.850723174714
-    Test Spearman: 0.781897416258
-    Test MSE: 1.42706077904
-    ********************************
-    '''
-    
-    ## ************ Results you should see for the bow model with dim=300 + featureBased ********************
-    
-    ''''
-    ## On SICK
-    ************ SUMMARY ***********
-    Train data size: 4500
-    Dev data size: 500
-    Dev Pearson: 0.784315968232
-    Dev Spearman: 0.724620203193
-    Dev MSE: 0.389213268763
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 4927
-    Test Pearson: 0.803371464158
-    Test Spearman: 0.718421842395
-    Test MSE: 0.360926957777
-    ********************************
-    
-    ## On College
-    ************ SUMMARY ***********
-    Test data size: 2372
-    Test Pearson: 0.611119924197
-    Test Spearman: 0.645276932097
-    Test MSE: 1.85418252049
-    ********************************
-    
-    ## On School
-    ************ SUMMARY ***********
-    Test data size: 891
-    Test Pearson: 0.819694779591
-    Test Spearman: 0.79691695501
-    Test MSE: 1.20898036887
-    ********************************
-    ************ SUMMARY ***********
-    Test data size: 786
-    Test Pearson: 0.933417623332
-    Test Spearman: 0.800096195729
-    Test MSE: 0.533236823978
-    ********************************
-    
-    '''
-    

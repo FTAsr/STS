@@ -4,16 +4,12 @@
 Evaluation code for the SICK dataset (SemEval 2014 Task 1)
 '''
 
-
 import sys
 #sys.path = ['../gensim', '../models', '../utils'] + sys.path
 sys.path = ['../models', '../utils', '../monolingual-word-aligner'] + sys.path
 # Local imports
 import gensim, utils
 import models as md
-import testAlign
-
-
 
 import math
 #from gensim.models.fastsent import FastSent
@@ -36,10 +32,12 @@ from keras.models import load_model
 
 from scipy.stats.stats import pearsonr
 from sklearn import svm
+from sklearn.linear_model import Ridge
 
 import itertools
 import pandas as pd
 import pickle
+import csv
 
 ## This flag is used to mark cases (sentences or sentence pairs) that a model cannot successfully vectorize
 errorFlag = ["error flag"] 
@@ -55,14 +53,20 @@ def pairFeatures(models, a,b):
         try:
             vector = list()
             for index , model in enumerate(models):
-                part = model.pairFeatures(sentenceA,sentenceB)
-                #part.append(testAlign.scorer(sentenceA, sentenceB))
+                part = model.pairFeatures(sentenceA, sentenceB)
                 vector.extend(part)
                 #print sentenceA, " & " , sentenceB , " Model " , index  , ":" , part
             result.append(vector)
-        except:
+        except Exception, e:
             #print("ERROR: " + sentenceA + " & " +  sentenceB)
+            print "Couldn't do it: %s" % e
             result.append(errorFlag)
+
+
+    with open("features.csv", "wb") as f:
+        writer = csv.writer(f)
+        writer.writerows(result)
+    
     return result
         
 def train(models, trainSet, devSet, seed=1234): 
@@ -92,16 +96,23 @@ def train(models, trainSet, devSet, seed=1234):
     print(trainF.shape)
     
     print 'Compiling svr model...'
+    '''
     bestsvrmodel = svm.SVR()
     print(trainF.shape)
     print(trainY.shape)
     bestsvrmodel.fit(trainF, trainSet[2]) 
+    '''
+
+    bestsvrmodel = Ridge(alpha=1.0)
+    bestsvrmodel.fit(trainF, trainSet[2])
 
     #r = np.arange(1,6)
     yhat = bestsvrmodel.predict(devF)
     pr = pearsonr(yhat, devS)[0]
     sr = spearmanr(yhat, devS)[0]
     se = mse(yhat, devS)
+
+
 
     print("\n************ SUMMARY DEV***********")
     print 'Train data size: ' + str(len(trainY))
@@ -289,8 +300,10 @@ if __name__ == '__main__':
     #ensemble.append(md.bow("/home/ds/STS/GoogleNews-vectors-negative300.bin"))
     
     ## FeatureBased model is standalone and does not need any pre-trained or external resource
-    ensemble.append(md.featureBased())
+    #ensemble.append(md.featureBased())
     
+    # Word align model based on Sultan et. al.
+    ensemble.append(md.align())
     
     ## Load some data for training (standard SICK dataset)
     trainSet, devSet, testSet = load_data_SICK('../data/SICK/')
@@ -530,6 +543,22 @@ if __name__ == '__main__':
     Test Pearson: 0.933417623332
     Test Spearman: 0.800096195729
     Test MSE: 0.533236823978
+    ********************************
+    
+    ## Word Aligner SVR on SICK data
+    ************ SUMMARY DEV***********
+    Train data size: 4500
+    Dev data size: 500
+    Dev Pearson: 0.697014065213
+    Dev Spearman: 0.674711863823
+    Dev MSE: 0.534049628537
+    ********************************
+    
+    ************ SUMMARY TEST***********
+    Test data size: 4927
+    Test Pearson: 0.697597288499
+    Test Spearman: 0.639736834374
+    Test MSE: 0.533861416771
     ********************************
     
     '''

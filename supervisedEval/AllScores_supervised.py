@@ -7,9 +7,9 @@ Evaluation code for the SICK dataset (SemEval 2014 Task 1)
 
 import sys
 #sys.path.append('./gensim') #Essential step
-sys.path = ['../gensim', '../models', '../utils'] + sys.path
+sys.path = ['../gensim', '../modeling', '../utils'] + sys.path
 # Local imports
-import gensim, models, utils
+import gensim, modeldef, utils
 
 import math
 
@@ -346,14 +346,14 @@ if __name__ == '__main__':
     ##evaluate(model, '../data/SICK/', evaltest=True, callable = True, featureVector = True)
     
     
-    model = models.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
+    model = modeldef.bow("/Users/fa/workspace/repos/_codes/MODELS/Rob/word2vec_100_6/vectorsW.bin")
     #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = False, pairFeatures = False )
     #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = False).to_csv('../data/local/IES-2Exp1A_AVG-BOW.csv')
     #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False).to_csv('../data/local/IES-2Exp2A_AVG-BOW.csv')
     evaluate(model, '../data/SICK/', evaltest=True, callable = False, featureVector = True)
     
     
-    #model = models.featureBased()
+    #model = modeldef.featureBased()
     #evaluate(model,'../data/local/CollegeOldData_HighAgreementPartialScoring.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/CollegeOldData-QS.csv')
     #evaluate(model,'../data/local/IES-2Exp1A_AVG.txt', evaltest=True, callable = False, featureVector = True).to_csv('../data/local/IES-2Exp1A_AVG-QS.csv')
     #evaluate(model,'../data/local/IES-2Exp2A_AVG.txt', evaltest=True, callable = False, featureVector = True ).to_csv('../data/local/IES-2Exp2A_AVG-QS.csv')

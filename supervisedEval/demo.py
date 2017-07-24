@@ -1,9 +1,9 @@
 ## This file is the point of invocation for the ASAG system.
 
 import sys
-sys.path = ['../', '../feedback', '../modeling', '../IUB/models'] + sys.path
+sys.path = ['../', '../feedbackmodels', '../featuremodels'] + sys.path
 import models
-from IUB.models import models as md
+from featuremodels import models as md
 import pickle
 import AllScores_supervised_02 as app
 from properties import *
@@ -12,22 +12,24 @@ import nltk
 def post_process(result):
 	# Post processing model's predicted score as required.
 	if GRADING_SCALE_REAL_0_1:
-		result['score'] /= 5.0
+		result['prediction'] /= 5.0
 	elif GRADING_SCALE_Integer_0_5:
-		result['score'] = np.floor(result['score'])
+		result['prediction'] = np.floor(result['prediction'])
 	elif GRADING_SCALE_MULTICLASS:
-		result.loc[(result.score == PARTIALLY_CORRECT_LOW), 'score'] = GRADING_SCALE_LABELS[0]
-		result.loc[(PARTIALLY_CORRECT_LOW < result.score) & (result.score <= PARTIALLY_CORRECT_HIGH), 'score'] = GRADING_SCALE_LABELS[1]
-		result.loc[(PARTIALLY_CORRECT_HIGH < result.score) & (result.score <= 5), 'score'] = GRADING_SCALE_LABELS[2]
+		result.loc[(result.prediction >= 0) & (result.prediction < 1), 'prediction'] = GRADING_SCALE_LABELS[0]
+		result.loc[(1 <= result.prediction) & (result.prediction < 4), 'prediction'] = GRADING_SCALE_LABELS[1]
+		result.loc[(4 <= result.prediction) & (result.prediction <= 5), 'prediction'] = GRADING_SCALE_LABELS[2]
 	return result
 
 if __name__ == '__main__':
 
-	classifier = pickle.load(open('pretrained/' + BEST_CLASSIFIER_COLLEGE, 'rb'))
-	bowm = md.bow("../embeddings/GoogleNews-vectors-negative300.bin")
+	classifier = pickle.load(open('../pretrained/classifiers/' + BEST_CLASSIFIER_COLLEGE, 'rb'))
+	#bowm = md.bow("../embeddings/GoogleNews-vectors-negative300.bin")
+	feedm = md.feedback()
 	fbm = md.featureBased()
+	feedm.feedback_model.build_vocab_k_words(K=500000)
 
-	feedback_model = models.loadFeedbackModel()
+	#feedback_model = models.loadFeedbackModel()
 	print '\nWelcome to Automatic Short Answer Grading system. \n'	
 	
 
@@ -45,13 +47,13 @@ if __name__ == '__main__':
 						score = float(score) * 5
 
 					testSet = [[goldA], [studA], [float(score)]]
-					result = app.test([bowm, fbm], classifier, testSet)
+					result = app.test([feedm, fbm], classifier, testSet)
 					# Covert result into required grading scale.
 					result = post_process(result)
 					print result
 					
 					#feedback_model.build_vocab([sentA, sentB], tokenize=True)
-					keywords = models.feedback(feedback_model, goldA, float(threshold))
+					keywords = models.feedback(feedm.feedback_model, goldA, float(threshold))
 					#print 'keywords:', keywords
 					sent = nltk.word_tokenize(studA)
 					sent = [word.lower() for word in sent]
@@ -63,7 +65,7 @@ if __name__ == '__main__':
 				elif BATCH_MODE:
 					input_path = raw_input('Enter the complete file path for test data. \n')
 					trainSet, devSet, testSet = app.load_data_nosplit(input_path)
-					result = app.test([bowm, fbm], classifier, testSet)
+					result = app.test([feedm, fbm], classifier, testSet)
 					result = post_process(result)
 					timestamp = time.strftime("%Y%m%d-%H%M%S")
 					result.to_csv('../output/result' + timestamp + '.csv')
