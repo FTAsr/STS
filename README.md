@@ -23,9 +23,8 @@ pickle, fuzzywuzzy, tqdm <br />
 mantic contexts in the two sentences. It uses the Para-phrase Database (PPDB) (Ganitkevitch et al., 2013) to identify semantically similar words, and relies on dependencies and surface-form neighbors of the two words to determine their contextual similarity. Word pairs are aligned in decreasing order of a weighted sum of their semantic and contextual similarity. We have used a SVR model with alignment ratio and cosine distance between Word2Vec vector representaion of the two sentences as features for this model. (Sultan et al., 2014a)
 - feedback model is a BiLSTM network with max pooling makes the best current universal sentence encoding methods, outperforming existing approaches like SkipThought vectors. Current configuration of the feedback model uses GPU/Cuda by default. If you want to run it in CPU mode please uncomment the following lines in feedbackmodels/models.py file.
 
-    # torch.load(..pickle) will use GPU/Cuda by default. If you are on CPU:
-    # feedbackmod = torch.load('../feedback/infersent.allnli.pickle', map_location=lambda storage, loc: storage)
-    # feedbackmod.use_cuda = False
+    feedbackmod = torch.load('../feedback/infersent.allnli.pickle', map_location=lambda storage, loc: storage)
+    feedbackmod.use_cuda = False
 
 ## Supervised evaluation
 In supervised evaluation, we need labeled data (sentence pairs and their similarity scores) in order to train a classifier and then we can use this classifier for unlabeled data (new sentence pairs that we would like to score based on the "learned" patterns). The supervised evaluation has the advantage of fitting to our desired type of data (for example student answers might be scored in a less strict manner when kid's are the target than when adult answers are being evaluated). At the same time, this means we would need training data of the same type. The more similar training and test data, the better result we get from the automated scoring system.
