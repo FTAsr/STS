@@ -58,7 +58,7 @@ In order to use the implemented supervised evaluation framework, you need to lea
     test(ensemble, newClassifier, testSet)
 
 ## Embedding files
-Please download the pretrained Word2Vec and Glove embedding files and put them in embeddings directory.
+Please download the pretrained Word2Vec and Glove embedding files and put them in pretrained/embeddings directory.
 
 Word2Vec pre-trained Google News corpus (3 billion running words) word vector model (3 million 300-dimension English word vectors).It can be downloaded from the following URL:
 https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit
@@ -68,8 +68,16 @@ GloVe is an unsupervised learning algorithm for obtaining vector representations
 Common Crawl (840B tokens, 2.2M vocab, cased, 300d vectors, 2.03 GB download):
 Glove embeddings: http://nlp.stanford.edu/data/glove.840B.300d.zip
 
-Pretrained feedback model has to be put inside feedback directoy.
+Pretrained feedback model has to be put inside feedbackmodels directoy.
 curl -Lo encoder/infersent.allnli.pickle https://s3.amazonaws.com/senteval/infersent/infersent.allnli.pickle
+
+## Pretrained classifiers
+You can find the pretrained models in pretrained/classifiers directory. These are classifiers saved in pickled format. You can choose to load any one of them by just changing the following line in demo.py:
+
+classifier = pickle.load(open('../pretrained/classifiers/' + <name of pretrained classifer>, 'rb'))
+
+## Training new classifiers
+You can also train new classifiers on new dataset by invoking AllScores_supervised_02.py file's train method. 
 
 ## Mode of operations
 We have provided two modes of operation to run our system:
