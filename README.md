@@ -77,7 +77,16 @@ You can find the pretrained models in pretrained/classifiers directory. These ar
 classifier = pickle.load(open('../pretrained/classifiers/' + <name of pretrained classifer>, 'rb'))
 
 ## Training new classifiers
-You can also train new classifiers on new dataset by invoking AllScores_supervised_02.py file's train method. 
+You can also train new classifiers on new dataset by invoking AllScores_supervised_02.py file's train method. There is also an option to combine feature spaces of different models together.
+
+If you are planning to train a model using aligner module you will have to invoke Stanford core nlp engine first. Please go through readme file within monolingual-word-aligner directory for detailed instructions.
+
+$ cd stanford-corenlp-python
+$ python corenlp.py
+It will show a console output like this:
+
+Loading Models: 5/5                                                             
+INFO:__main__:Serving on http://127.0.0.1:8080
 
 ## Mode of operations
 We have provided two modes of operation to run our system:
