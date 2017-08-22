@@ -24,9 +24,16 @@ def post_process(result):
 if __name__ == '__main__':
 
 	classifier = pickle.load(open('../pretrained/classifiers/' + BEST_CLASSIFIER_COLLEGE, 'rb'))
+	usedModels = list()
 	#bowm = md.bow("../embeddings/GoogleNews-vectors-negative300.bin")
 	feedm = md.feedback()
 	fbm = md.featureBased()
+	
+	## comment the lines corressponding to unused models
+	#usedModels.append(bowm)
+	usedModels.append(feedm)
+	usedModels.append(fbm)
+
 	feedm.feedback_model.build_vocab_k_words(K=500000)
 
 	#feedback_model = models.loadFeedbackModel()
@@ -47,7 +54,7 @@ if __name__ == '__main__':
 						score = float(score) * 5
 
 					testSet = [[goldA], [studA], [float(score)]]
-					result = app.test([feedm, fbm], classifier, testSet)
+					result = app.test(usedModels, classifier, testSet)
 					# Covert result into required grading scale.
 					result = post_process(result)
 					print result
