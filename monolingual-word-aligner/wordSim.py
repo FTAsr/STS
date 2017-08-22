@@ -1,7 +1,7 @@
 from config import *
 
 ################################################################################
-def loadPPDB(ppdbFileName = '/home/ds/STS/monolingual-word-aligner/ppdb-1.0-xxxl-lexical.extended.synonyms.uniquepairs'):
+def loadPPDB(ppdbFileName = '../monolingual-word-aligner/ppdb-1.0-xxxl-lexical.extended.synonyms.uniquepairs'):
 
     global ppdbSim
     global ppdbDict
